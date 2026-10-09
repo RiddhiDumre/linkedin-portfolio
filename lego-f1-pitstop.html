@@ -1,0 +1,3037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer">
+  <title>F1 PIT LANE TELEMETRY — Speed Challenge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #08090d;
+      --f1-black: #0c0d12;
+      --f1-dark: #12141a;
+      --f1-panel: #161820;
+      --f1-panel-border: rgba(255, 255, 255, 0.14);
+      --f1-white: #ffffff;
+      --f1-ink-muted: #8c93a3;
+      --f1-red: #e10600;
+      --f1-red-dark: #a80500;
+      --f1-green: #00d26a;
+      --f1-yellow: #ffb800;
+      --font-display: "Barlow Condensed", -apple-system, sans-serif;
+      --font-body: "Inter", -apple-system, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #08090d url('BG.png') no-repeat center center;
+      background-size: cover;
+      font-family: var(--font-body);
+      color: var(--f1-white);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      background: transparent;
+    }
+
+    /* 1. TOP F1 BROADCAST TIMING STRIP */
+    .f1-broadcast-strip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      z-index: 30;
+      display: flex;
+      align-items: stretch;
+      background: rgba(10, 11, 16, 0.95);
+      border-bottom: 2px solid var(--f1-red);
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.85);
+    }
+    .f1-strip-brand {
+      display: flex;
+      align-items: center;
+      background: var(--f1-red);
+      color: #fff;
+      padding: 0 16px;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      gap: 8px;
+      position: relative;
+    }
+    .f1-strip-brand::after {
+      content: '';
+      position: absolute;
+      right: -12px;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      background: var(--f1-red);
+      clip-path: polygon(0 0, 0 100%, 100% 0);
+    }
+    .f1-event-tag {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 18px 0 24px;
+      border-right: 1px solid var(--f1-panel-border);
+    }
+    .f1-event-tag .sub {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--f1-ink-muted);
+      text-transform: uppercase;
+    }
+    .f1-event-tag .main {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .f1-strip-timer {
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 12px;
+      background: #000000;
+      border-right: 1px solid var(--f1-panel-border);
+    }
+    .f1-timer-tag {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      color: var(--f1-ink-muted);
+      text-transform: uppercase;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .f1-timer-clock {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      min-width: 105px;
+    }
+    .f1-timer-clock.fast {
+      color: var(--f1-green);
+    }
+    .f1-timer-clock.record {
+      color: var(--f1-yellow);
+    }
+
+    .f1-strip-status {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-right: 1px solid var(--f1-panel-border);
+    }
+    .f1-status-badge {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: var(--f1-panel);
+      padding: 4px 10px;
+      border: 1px solid var(--f1-panel-border);
+      color: #fff;
+    }
+    .f1-status-badge.in-progress {
+      border-color: var(--f1-red);
+      background: rgba(225, 6, 0, 0.25);
+      color: #ff5550;
+    }
+    .f1-status-badge.complete {
+      border-color: var(--f1-green);
+      background: rgba(0, 210, 106, 0.25);
+      color: var(--f1-green);
+    }
+
+    /* Gantry lights */
+    .f1-strip-lights {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px;
+      background: rgba(0,0,0,0.4);
+      border-right: 1px solid var(--f1-panel-border);
+    }
+    .g-light {
+      width: 9px;
+      height: 9px;
+      border-radius: 0;
+      background: #252830;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .g-light.red {
+      background: var(--f1-red);
+      box-shadow: 0 0 10px rgba(225, 6, 0, 0.85);
+    }
+    .g-light.green {
+      background: var(--f1-green);
+      box-shadow: 0 0 12px rgba(0, 210, 106, 0.95);
+    }
+
+    .f1-strip-best {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--f1-ink-muted);
+    }
+    .f1-strip-best .val {
+      color: var(--f1-yellow);
+    }
+
+    /* Difficulty Setting Selector */
+    .f1-strip-diff {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      border-left: 1px solid var(--f1-panel-border);
+      background: rgba(0, 0, 0, 0.4);
+    }
+    .f1-diff-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--f1-ink-muted);
+      letter-spacing: 0.12em;
+    }
+    .f1-diff-btn {
+      background: #14161f;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #9aa2b5;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .f1-diff-btn:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .f1-diff-btn.active {
+      background: var(--f1-red);
+      color: #fff;
+      border-color: var(--f1-red);
+      box-shadow: 0 0 8px rgba(225, 6, 0, 0.6);
+    }
+
+    /* Team Radio Audio Mute / Unmute Broadcast Button */
+    .f1-strip-audio {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-left: 1px solid var(--f1-panel-border);
+      background: rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .f1-strip-audio:hover {
+      background: rgba(225, 6, 0, 0.2);
+    }
+    .f1-audio-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .f1-audio-icon {
+      font-size: 11px;
+    }
+    .f1-audio-indicator {
+      width: 6px;
+      height: 6px;
+      background: var(--f1-green);
+      box-shadow: 0 0 6px var(--f1-green);
+    }
+    .f1-audio-indicator.muted {
+      background: var(--f1-red);
+      box-shadow: 0 0 6px var(--f1-red);
+    }
+
+    /* Synchronized Word-by-Word Text Reveal */
+    .radio-word {
+      display: inline-block;
+      transition: color 0.1s ease, opacity 0.1s ease, text-shadow 0.15s ease;
+      margin-right: 0.24em;
+    }
+    .radio-word.pending {
+      opacity: 0.25;
+      color: #7b8190;
+    }
+    .radio-word.active {
+      opacity: 1;
+      color: #ffffff;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(225, 6, 0, 0.6);
+    }
+    .radio-word.spoken {
+      opacity: 0.95;
+      color: #ffffff;
+    }
+
+    /* Radio Transmission Animation Pulse in Modal Header */
+    .radio-tx-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      color: #ff5550;
+      margin-left: 10px;
+    }
+    .radio-tx-live {
+      width: 7px;
+      height: 7px;
+      background: var(--f1-red);
+      box-shadow: 0 0 8px var(--f1-red);
+      animation: txPulse 0.8s infinite alternate;
+    }
+    @keyframes txPulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* 2. PIT CREW TELEMETRY PANEL (TOP-RIGHT) */
+    .f1-telemetry-panel {
+      position: absolute;
+      top: 64px;
+      right: 18px;
+      z-index: 25;
+      background: rgba(12, 13, 18, 0.94);
+      border: 1px solid var(--f1-panel-border);
+      border-top: 3px solid var(--f1-red);
+      padding: 10px 14px;
+      width: 220px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      pointer-events: none;
+    }
+    .telemetry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .telemetry-title {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .telemetry-count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .telemetry-count .green {
+      color: var(--f1-green);
+    }
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .wheel-slot {
+      background: rgba(22, 24, 32, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: all 0.2s ease;
+    }
+    .wheel-slot-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wheel-slot-code {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.06em;
+    }
+    .wheel-indicator-box {
+      width: 7px;
+      height: 7px;
+      background: #2a2d36;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .wheel-slot-status {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--f1-ink-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    /* Wheel Slot States */
+    .wheel-slot.removing {
+      border-color: var(--f1-red);
+      background: rgba(225, 6, 0, 0.2);
+    }
+    .wheel-slot.removing .wheel-indicator-box {
+      background: var(--f1-red);
+      box-shadow: 0 0 6px var(--f1-red);
+    }
+    .wheel-slot.removing .wheel-slot-status {
+      color: #ff6863;
+    }
+
+    .wheel-slot.incoming {
+      border-color: var(--f1-yellow);
+      background: rgba(255, 184, 0, 0.15);
+    }
+    .wheel-slot.incoming .wheel-indicator-box {
+      background: var(--f1-yellow);
+      box-shadow: 0 0 6px var(--f1-yellow);
+    }
+    .wheel-slot.incoming .wheel-slot-status {
+      color: var(--f1-yellow);
+    }
+
+    .wheel-slot.fitted {
+      border-color: var(--f1-green);
+      background: rgba(0, 210, 106, 0.18);
+    }
+    .wheel-slot.fitted .wheel-indicator-box {
+      background: var(--f1-green);
+      box-shadow: 0 0 6px var(--f1-green);
+    }
+    .wheel-slot.fitted .wheel-slot-status {
+      color: var(--f1-green);
+    }
+
+    /* 3. CONTEXTUAL BROADCAST ACTION BANNER (BOTTOM) */
+    .f1-action-bar {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      background: rgba(12, 13, 18, 0.95);
+      border: 1px solid var(--f1-panel-border);
+      border-left: 4px solid var(--f1-red);
+      padding: 9px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+      pointer-events: none;
+    }
+    .f1-action-badge {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      color: var(--f1-red);
+      text-transform: uppercase;
+    }
+    .f1-action-text {
+      font-family: var(--font-body);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* 4. INTERACTIVE 3D WHEEL TAGS */
+    .wheel-badge {
+      position: absolute;
+      z-index: 20;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(12, 13, 18, 0.94);
+      border: 1px solid var(--f1-panel-border);
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #fff;
+      text-transform: uppercase;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.75);
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+      touch-action: manipulation;
+    }
+    .wheel-badge:hover {
+      transform: translate(-50%, -50%) scale(1.05);
+      border-color: #fff;
+    }
+    .wheel-badge:active {
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+    .wheel-badge.remove {
+      border-left: 3px solid var(--f1-red);
+    }
+    .wheel-badge.remove:hover {
+      background: rgba(225, 6, 0, 0.28);
+    }
+    .wheel-badge.install {
+      border-left: 3px solid var(--f1-yellow);
+      color: var(--f1-yellow);
+    }
+    .wheel-badge.install:hover {
+      background: rgba(255, 184, 0, 0.25);
+    }
+    .wheel-badge.rolling {
+      border-left: 3px solid #ffcc00;
+      color: #ffea79;
+      background: rgba(255, 204, 0, 0.2);
+      box-shadow: 0 0 14px rgba(255, 204, 0, 0.45);
+      animation: badgeRollBounce 0.4s infinite alternate ease-in-out;
+    }
+    .wheel-badge.rolling:hover {
+      background: rgba(255, 204, 0, 0.38);
+      border-color: #ffea79;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+    @keyframes badgeRollBounce {
+      0% { transform: translate(-50%, -50%) translateY(0); }
+      100% { transform: translate(-50%, -50%) translateY(-4px); }
+    }
+    .wheel-badge.completed {
+      border-left: 3px solid var(--f1-green);
+      color: var(--f1-green);
+      pointer-events: none;
+      background: rgba(0, 210, 106, 0.15);
+    }
+    .wheel-badge.stuck {
+      border-left: 3px solid #ff9900;
+      color: #ffaa00;
+      background: rgba(255, 153, 0, 0.22);
+      animation: badgeShake 0.4s infinite alternate;
+    }
+    .wheel-badge.jam {
+      border-left: 3px solid #ff3300;
+      color: #ff5533;
+      background: rgba(255, 51, 0, 0.25);
+      animation: badgePulse 0.5s infinite alternate;
+    }
+    .wheel-badge.misaligned {
+      border-left: 3px solid #00c8ff;
+      color: #00e1ff;
+      background: rgba(0, 200, 255, 0.2);
+    }
+    .wheel-badge.wrong-compound {
+      border-left: 3px solid #ff0055;
+      color: #ff3377;
+      background: rgba(255, 0, 85, 0.25);
+    }
+
+    @keyframes badgeShake {
+      0% { transform: translate(-50%, -50%) rotate(-1deg); }
+      100% { transform: translate(-50%, -50%) rotate(1deg); }
+    }
+    @keyframes badgePulse {
+      0% { box-shadow: 0 0 4px rgba(255, 51, 0, 0.4); }
+      100% { box-shadow: 0 0 16px rgba(255, 51, 0, 0.9); }
+    }
+
+    /* Interactive Complication Overlays */
+    /* A. Stuck Nut Wheel Gun Hold Target */
+    .stuck-gun-widget {
+      position: absolute;
+      z-index: 28;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: all;
+      cursor: pointer;
+    }
+    .stuck-gun-circle {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(10, 12, 18, 0.92);
+      border: 2px dashed #ff9900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      position: relative;
+      box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+      transition: transform 0.1s ease;
+    }
+    .stuck-gun-circle:active {
+      transform: scale(0.92);
+    }
+    .stuck-gun-progress-svg {
+      position: absolute;
+      inset: -4px;
+      width: 66px;
+      height: 66px;
+      transform: rotate(-90deg);
+    }
+    .stuck-gun-progress-bar {
+      fill: none;
+      stroke: #00d26a;
+      stroke-width: 4;
+      stroke-dasharray: 188;
+      stroke-dashoffset: 188;
+      transition: stroke-dashoffset 0.05s linear;
+    }
+    .stuck-gun-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 800;
+      color: #ffaa00;
+      letter-spacing: 0.12em;
+      background: rgba(5, 6, 10, 0.9);
+      padding: 2px 6px;
+      border: 1px solid rgba(255, 153, 0, 0.4);
+      white-space: nowrap;
+    }
+
+    /* B. Wheel Gun Jam Double-Click Target */
+    .gun-jam-widget {
+      position: absolute;
+      z-index: 28;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: all;
+      cursor: pointer;
+    }
+    .gun-jam-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(20, 6, 6, 0.95);
+      border: 2px solid var(--f1-red);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 25px rgba(225, 6, 0, 0.7);
+      animation: gunJamWobble 0.3s infinite;
+      transition: transform 0.08s ease;
+    }
+    .gun-jam-btn:active {
+      transform: scale(0.92);
+    }
+    @keyframes gunJamWobble {
+      0% { transform: scale(1) rotate(-3deg); }
+      50% { transform: scale(1.05) rotate(3deg); }
+      100% { transform: scale(1) rotate(-3deg); }
+    }
+    .gun-jam-step-pill {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 900;
+      color: #fff;
+      background: var(--f1-red);
+      padding: 1px 5px;
+      letter-spacing: 0.08em;
+    }
+    .gun-jam-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 800;
+      color: #ff6863;
+      letter-spacing: 0.1em;
+      background: rgba(10, 6, 6, 0.9);
+      padding: 2px 6px;
+      border: 1px solid rgba(225, 6, 0, 0.4);
+      white-space: nowrap;
+    }
+
+    /* C. Misalignment Drag Hub Target Ring */
+    .align-target-ring {
+      position: absolute;
+      z-index: 19;
+      transform: translate(-50%, -50%);
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 2px dashed #00e1ff;
+      background: rgba(0, 225, 255, 0.08);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 225, 255, 0.3);
+      animation: alignPulse 1s infinite alternate;
+    }
+    @keyframes alignPulse {
+      0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+    }
+    .align-target-cross {
+      width: 14px;
+      height: 14px;
+      position: relative;
+    }
+    .align-target-cross::before, .align-target-cross::after {
+      content: '';
+      position: absolute;
+      background: #00e1ff;
+    }
+    .align-target-cross::before { top: 6px; left: 0; width: 14px; height: 2px; }
+    .align-target-cross::after { left: 6px; top: 0; width: 2px; height: 14px; }
+
+    /* D. Tyre Compound Rack (Bottom Left) */
+    .f1-compound-rack {
+      position: absolute;
+      bottom: 22px;
+      left: 20px;
+      z-index: 25;
+      background: rgba(12, 13, 18, 0.95);
+      border: 1px solid var(--f1-panel-border);
+      border-top: 3px solid var(--f1-red);
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+    }
+    .compound-rack-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .compound-rack-title {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      color: #8c93a3;
+      text-transform: uppercase;
+    }
+    .compound-rack-target {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--f1-green);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .compound-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .compound-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(22, 24, 32, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: #fff;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .compound-btn:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(35, 38, 50, 0.95);
+    }
+    .compound-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    }
+    .compound-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .compound-dot.soft { background: #e10600; box-shadow: 0 0 6px #e10600; }
+    .compound-dot.medium { background: #ffb800; box-shadow: 0 0 6px #ffb800; }
+    .compound-dot.hard { background: #ffffff; box-shadow: 0 0 6px #ffffff; }
+
+    /* 5. BROADCAST TELEMETRY RESULTS MODAL — F1 BROADCAST + FERRARI RADIO ROASTS */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      background: rgba(5, 6, 9, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-card {
+      background: #0d0f15;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 3px solid var(--f1-red);
+      width: 620px;
+      max-width: 96%;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.95), 0 0 40px rgba(225, 6, 0, 0.12);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* A. Top Broadcast Strip */
+    .modal-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+      background: #08090d;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .modal-brand-left {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      color: #ffffff;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-brand-left .scuderia-tag {
+      color: var(--f1-red);
+      font-weight: 900;
+    }
+    .modal-brand-right {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--f1-ink-muted);
+      text-transform: uppercase;
+    }
+
+    .modal-status-substrip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 24px;
+      background: rgba(22, 24, 32, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .modal-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--f1-green);
+    }
+    .modal-status-pill .dot {
+      width: 7px;
+      height: 7px;
+      background: var(--f1-green);
+      box-shadow: 0 0 8px var(--f1-green);
+    }
+    .modal-session-category {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--f1-yellow);
+      text-transform: uppercase;
+    }
+
+    .modal-main-body {
+      padding: 30px 32px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    /* B. Final Pit-Stop Time */
+    .modal-time-section {
+      width: 100%;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .modal-hero-time-label {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--f1-ink-muted);
+      margin-bottom: 6px;
+    }
+    .modal-time {
+      font-family: var(--font-display);
+      font-size: 78px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+      line-height: 0.95;
+      font-variant-numeric: tabular-nums;
+      text-transform: uppercase;
+      text-shadow: 0 0 35px rgba(255, 255, 255, 0.12);
+    }
+
+    /* C. Ferrari Radio Roast — THE MAIN EVENT */
+    .modal-roast-section {
+      width: 100%;
+      position: relative;
+      padding-left: 20px;
+      border-left: 4px solid var(--f1-red);
+      margin-bottom: 24px;
+    }
+    .modal-roast-quote {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 900;
+      font-style: italic;
+      line-height: 1.18;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+    }
+    .modal-roast-attribution {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #ff5550;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .modal-roast-attribution::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 2px;
+      background: var(--f1-red);
+    }
+
+    /* Embedded Meme GIF Display */
+    .modal-meme-container {
+      width: 100%;
+      height: 170px;
+      background: #090a0f;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+    .modal-meme-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      filter: contrast(1.05) brightness(0.95);
+      display: block;
+    }
+    .modal-meme-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      background: rgba(8, 9, 13, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      padding: 3px 8px;
+      text-transform: uppercase;
+    }
+    .modal-meme-tag .red-dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      background: var(--f1-red);
+      margin-right: 5px;
+    }
+
+    /* D. Next Action Button */
+    .modal-action-row {
+      width: 100%;
+    }
+    /* Minimal Sharp Broadcast Button */
+    .btn-restart {
+      background: var(--f1-red);
+      color: #ffffff;
+      border: none;
+      padding: 16px 24px;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      width: 100%;
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(225, 6, 0, 0.4);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .btn-restart:hover {
+      background: #ff1810;
+      transform: translateY(-1px);
+    }
+    .btn-restart:active {
+      background: var(--f1-red-dark);
+      transform: translateY(0);
+    }
+    .btn-arrow {
+      font-size: 18px;
+      transition: transform 0.15s ease;
+    }
+    .btn-restart:hover .btn-arrow {
+      transform: translateX(4px);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <!-- 1. TOP F1 BROADCAST TIMING STRIP -->
+  <div class="f1-broadcast-strip">
+    <div class="f1-strip-brand">F1 PIT LANE</div>
+    <div class="f1-event-tag">
+      <span class="sub">LIVE TIMING</span>
+      <span class="main">SCUDERIA STOP-BOX</span>
+    </div>
+    <div class="f1-strip-timer">
+      <div class="f1-timer-tag">
+        <span>STOPWATCH</span>
+        <span>SEC</span>
+      </div>
+      <div class="f1-timer-clock" id="timer-val">0.00 s</div>
+    </div>
+    <div class="f1-strip-status">
+      <div class="f1-status-badge" id="status-badge">APPROACHING</div>
+    </div>
+    <div class="f1-strip-lights">
+      <div class="g-light red" id="light-0"></div>
+      <div class="g-light red" id="light-1"></div>
+      <div class="g-light red" id="light-2"></div>
+      <div class="g-light red" id="light-3"></div>
+      <div class="g-light red" id="light-4"></div>
+    </div>
+    <div class="f1-strip-best">
+      <span>BEST TIME:</span>
+      <span class="val" id="best-time">--.-- s</span>
+    </div>
+    <div class="f1-strip-diff">
+      <span class="f1-diff-label">TIER:</span>
+      <button class="f1-diff-btn" id="diff-rookie" title="Rookie Mode (Complications Disabled)">ROOKIE</button>
+      <button class="f1-diff-btn active" id="diff-pro" title="Pro Mode (1-2 Complications per stop)">PRO</button>
+    </div>
+    <div class="f1-strip-audio" id="audio-toggle-btn" title="Toggle Team Radio Audio">
+      <span class="f1-audio-indicator" id="audio-indicator"></span>
+      <button class="f1-audio-btn"><span class="f1-audio-icon" id="audio-icon">🔊</span> RADIO: <span id="audio-label">ON</span></button>
+    </div>
+  </div>
+
+  <!-- 2. PIT CREW TELEMETRY PANEL (TOP-RIGHT) -->
+  <div class="f1-telemetry-panel">
+    <div class="telemetry-header">
+      <span class="telemetry-title">CREW TELEMETRY</span>
+      <span class="telemetry-count" id="telemetry-count"><span class="green" id="tyres-fitted-num">0</span> / 4 FITTED</span>
+    </div>
+    <div class="telemetry-grid">
+      <div class="wheel-slot" id="slot-FL">
+        <div class="wheel-slot-top">
+          <span class="wheel-slot-code">FL</span>
+          <span class="wheel-indicator-box"></span>
+        </div>
+        <span class="wheel-slot-status">LOCKED</span>
+      </div>
+      <div class="wheel-slot" id="slot-FR">
+        <div class="wheel-slot-top">
+          <span class="wheel-slot-code">FR</span>
+          <span class="wheel-indicator-box"></span>
+        </div>
+        <span class="wheel-slot-status">LOCKED</span>
+      </div>
+      <div class="wheel-slot" id="slot-RL">
+        <div class="wheel-slot-top">
+          <span class="wheel-slot-code">RL</span>
+          <span class="wheel-indicator-box"></span>
+        </div>
+        <span class="wheel-slot-status">LOCKED</span>
+      </div>
+      <div class="wheel-slot" id="slot-RR">
+        <div class="wheel-slot-top">
+          <span class="wheel-slot-code">RR</span>
+          <span class="wheel-indicator-box"></span>
+        </div>
+        <span class="wheel-slot-status">LOCKED</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. INTERACTIVE 3D WHEEL TAGS -->
+  <div class="wheel-badge remove" id="badge-FL" style="display:none;"><span class="wheel-badge-code">FL</span> REMOVE TYRE</div>
+  <div class="wheel-badge remove" id="badge-FR" style="display:none;"><span class="wheel-badge-code">FR</span> REMOVE TYRE</div>
+  <div class="wheel-badge remove" id="badge-RL" style="display:none;"><span class="wheel-badge-code">RL</span> REMOVE TYRE</div>
+  <div class="wheel-badge remove" id="badge-RR" style="display:none;"><span class="wheel-badge-code">RR</span> REMOVE TYRE</div>
+
+  <!-- Interactive Alignment Guide Ring -->
+  <div class="align-target-ring" id="align-target-ring" style="display:none;">
+    <div class="align-target-cross"></div>
+  </div>
+
+  <!-- 4. CONTEXTUAL BROADCAST ACTION BANNER -->
+  <div class="f1-action-bar" id="action-prompt">
+    <span class="f1-action-badge">RADIO</span>
+    <span class="f1-action-text" id="action-text">CAR ROLLING INTO BOX // STAND BY</span>
+  </div>
+
+  <!-- 5. BROADCAST TELEMETRY RESULTS MODAL -->
+  <div class="modal-overlay" id="result-modal">
+    <div class="modal-card">
+      <!-- A. Top Broadcast Strip -->
+      <div class="modal-header-bar">
+        <div class="modal-brand-left">
+          <span class="scuderia-tag">SCUDERIA FERRARI</span>
+        </div>
+        <div class="modal-brand-right">PIT LANE // LIVE TIMING</div>
+      </div>
+      <div class="modal-status-substrip">
+        <div class="modal-status-pill">
+          <span class="dot"></span>
+          <span>PIT STOP COMPLETE</span>
+        </div>
+        <div class="modal-session-category" id="modal-tier-tag">ELITE EXECUTION</div>
+      </div>
+
+      <div class="modal-main-body">
+        <!-- B. Final Pit-Stop Time -->
+        <div class="modal-time-section">
+          <div class="modal-hero-time-label">OFFICIAL STATIONARY DURATION</div>
+          <div class="modal-time" id="modal-time-val">0.00 S</div>
+        </div>
+
+        <!-- C. Ferrari Radio Roast — THE MAIN EVENT -->
+        <div class="modal-roast-section">
+          <div class="modal-roast-quote" id="ferrari-quote">"WE ARE CHECKING... STAY OUT! NO WAIT, BOX BOX BOX!"</div>
+          <div class="modal-roast-attribution">
+            <span>— SCUDERIA FERRARI // TEAM RADIO</span>
+            <span class="radio-tx-badge" id="radio-tx-badge" style="display:none;"><span class="radio-tx-live"></span> TRANSMITTING</span>
+          </div>
+          <div class="modal-meme-container">
+            <img class="modal-meme-img" id="ferrari-meme-img" referrerpolicy="no-referrer" crossorigin="anonymous" src="https://media.giphy.com/media/2tTLnEwpMkdMcldAyN/giphy.gif" alt="Ferrari Pitstop Meme">
+            <div class="modal-meme-tag"><span class="red-dot"></span><span id="ferrari-meme-caption">FERRARI PIT WALL FEED</span></div>
+          </div>
+        </div>
+
+        <!-- D. Next Action -->
+        <div class="modal-action-row">
+          <button class="btn-restart" id="btn-restart">
+            <span>NEXT PIT STOP</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+
+  <script>
+    // --- Team Radio Audio Engine & Sound FX ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let radioMuted = localStorage.getItem('f1_radio_muted') === 'true';
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      }
+    }
+
+    // Audio Mute Toggle Button
+    const audioToggleBtn = document.getElementById('audio-toggle-btn');
+    const audioIndicator = document.getElementById('audio-indicator');
+    const audioIcon = document.getElementById('audio-icon');
+    const audioLabel = document.getElementById('audio-label');
+
+    function updateAudioUI() {
+      if (radioMuted) {
+        audioIndicator.className = 'f1-audio-indicator muted';
+        audioIcon.textContent = '🔇';
+        audioLabel.textContent = 'MUTED';
+      } else {
+        audioIndicator.className = 'f1-audio-indicator';
+        audioIcon.textContent = '🔊';
+        audioLabel.textContent = 'ON';
+      }
+    }
+    updateAudioUI();
+
+    audioToggleBtn.addEventListener('click', () => {
+      initAudio();
+      radioMuted = !radioMuted;
+      localStorage.setItem('f1_radio_muted', radioMuted.toString());
+      updateAudioUI();
+      if (radioMuted) {
+        stopRadioSpeech();
+      }
+    });
+
+    // Realistic Web Audio F1 Team Radio Squelch & Static Burst
+    function playRadioSquelch(isOpening = true) {
+      if (!audioCtx || radioMuted) return;
+      try {
+        const now = audioCtx.currentTime;
+        const dur = isOpening ? 0.09 : 0.12;
+
+        // 1. Noise Generator for authentic radio static burst
+        const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        // Bandpass Filter: 800Hz - 3200Hz military/walkie-talkie range
+        const bandpass = audioCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.setValueAtTime(isOpening ? 1800 : 1200, now);
+        bandpass.Q.setValueAtTime(3.2, now);
+
+        // Highpass Filter to remove low rumble
+        const highpass = audioCtx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.setValueAtTime(600, now);
+
+        // Gain Envelope
+        const squelchGain = audioCtx.createGain();
+        squelchGain.gain.setValueAtTime(0.24, now);
+        squelchGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        // 2. Beep / PTT (Push-To-Talk) sub-tone
+        const pttOsc = audioCtx.createOscillator();
+        const pttGain = audioCtx.createGain();
+        pttOsc.type = 'sine';
+        pttOsc.frequency.setValueAtTime(isOpening ? 2450 : 1750, now);
+        if (isOpening) {
+          pttOsc.frequency.exponentialRampToValueAtTime(1400, now + 0.05);
+        }
+
+        pttGain.gain.setValueAtTime(0.12, now);
+        pttGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        // Wiring
+        whiteNoise.connect(bandpass);
+        bandpass.connect(highpass);
+        highpass.connect(squelchGain);
+        squelchGain.connect(audioCtx.destination);
+
+        pttOsc.connect(pttGain);
+        pttGain.connect(audioCtx.destination);
+
+        whiteNoise.start(now);
+        whiteNoise.stop(now + dur);
+        pttOsc.start(now);
+        pttOsc.stop(now + 0.05);
+      } catch (err) {
+        console.warn('Radio squelch audio error:', err);
+      }
+    }
+
+    // Low-level background static carrier while speaking
+    let carrierNoiseNode = null;
+    let carrierGainNode = null;
+
+    function startRadioCarrier() {
+      if (!audioCtx || radioMuted) return;
+      try {
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.035;
+        }
+
+        carrierNoiseNode = audioCtx.createBufferSource();
+        carrierNoiseNode.buffer = noiseBuffer;
+        carrierNoiseNode.loop = true;
+
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 1400;
+        bp.Q.value = 2.0;
+
+        carrierGainNode = audioCtx.createGain();
+        carrierGainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+
+        carrierNoiseNode.connect(bp);
+        bp.connect(carrierGainNode);
+        carrierGainNode.connect(audioCtx.destination);
+        carrierNoiseNode.start();
+      } catch (e) {}
+    }
+
+    function stopRadioCarrier() {
+      if (carrierGainNode && audioCtx) {
+        try {
+          carrierGainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+          setTimeout(() => {
+            if (carrierNoiseNode) {
+              carrierNoiseNode.stop();
+              carrierNoiseNode.disconnect();
+              carrierNoiseNode = null;
+            }
+          }, 60);
+        } catch (e) {
+          carrierNoiseNode = null;
+        }
+      }
+    }
+
+    // Voice Selection: Look for Italian, British, or assertive English voice (Xavi Marcos / Riccardo Adami / Gianpiero Lambiase style)
+    let availableVoices = [];
+    function populateVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = window.speechSynthesis.getVoices();
+      }
+    }
+    populateVoices();
+
+    function getBestRaceEngineerVoice() {
+      populateVoices();
+      if (!availableVoices || availableVoices.length === 0) return null;
+
+      // 1. Italian English accent or European accent
+      const itVoice = availableVoices.find(v => v.lang.includes('it-IT') || v.name.toLowerCase().includes('italian'));
+      const gbVoice = availableVoices.find(v => v.lang.includes('en-GB') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('oliver') || v.name.toLowerCase().includes('daniel'));
+      const enVoice = availableVoices.find(v => v.lang.startsWith('en'));
+
+      return itVoice || gbVoice || enVoice || availableVoices[0];
+    }
+
+    // Synchronized Speech & Text Reveal Engine
+    let currentSpeechUtterance = null;
+    let wordRevealInterval = null;
+
+    function stopRadioSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (wordRevealInterval) {
+        clearInterval(wordRevealInterval);
+        wordRevealInterval = null;
+      }
+      stopRadioCarrier();
+      const txBadge = document.getElementById('radio-tx-badge');
+      if (txBadge) txBadge.style.display = 'none';
+
+      // Ensure all words are fully visible if speech was stopped
+      const quoteEl = document.getElementById('ferrari-quote');
+      if (quoteEl) {
+        const words = quoteEl.querySelectorAll('.radio-word');
+        words.forEach(w => w.className = 'radio-word spoken');
+      }
+    }
+
+    function playSynchronizedRadioDialogue(fullText) {
+      stopRadioSpeech();
+      if (radioMuted) {
+        // Just render text directly without hiding/speech
+        document.getElementById('ferrari-quote').textContent = '"' + fullText + '"';
+        return;
+      }
+
+      initAudio();
+
+      // Clean speech text for synthesis (remove quotes and non-pronounceable slashes)
+      const speechText = fullText.replace(/["\\]/g, '').trim();
+      const rawWords = fullText.split(/\s+/);
+
+      // Build initial word-by-word HTML with pending states
+      const quoteEl = document.getElementById('ferrari-quote');
+      quoteEl.innerHTML = '"' + rawWords.map((w, idx) => `<span class="radio-word pending" id="r-word-${idx}">${w}</span>`).join(' ') + '"';
+
+      const txBadge = document.getElementById('radio-tx-badge');
+      if (txBadge) txBadge.style.display = 'inline-flex';
+
+      // 1. Opening radio mic click & squelch
+      playRadioSquelch(true);
+
+      if (!('speechSynthesis' in window)) {
+        // TTS unsupported: reveal text via fallback timer
+        fallbackWordReveal(rawWords);
+        return;
+      }
+
+      const utter = new SpeechSynthesisUtterance(speechText);
+      currentSpeechUtterance = utter;
+
+      const voice = getBestRaceEngineerVoice();
+      if (voice) utter.voice = voice;
+
+      // Confident, urgent, rapid race engineer pacing
+      utter.rate = 1.38;
+      utter.pitch = 0.98;
+      utter.volume = 1.0;
+
+      let wordIndex = 0;
+      let speechStarted = false;
+
+      utter.onstart = () => {
+        speechStarted = true;
+        startRadioCarrier();
+      };
+
+      // Native SpeechSynthesis word boundary synchronization
+      utter.onboundary = (event) => {
+        if (event.name === 'word') {
+          if (wordIndex < rawWords.length) {
+            // Mark previous words as spoken
+            for (let i = 0; i < wordIndex; i++) {
+              const prev = document.getElementById('r-word-' + i);
+              if (prev) prev.className = 'radio-word spoken';
+            }
+            // Highlight current word
+            const cur = document.getElementById('r-word-' + wordIndex);
+            if (cur) cur.className = 'radio-word active';
+            wordIndex++;
+          }
+        }
+      };
+
+      utter.onend = () => {
+        stopRadioCarrier();
+        // Play closing squelch burst
+        playRadioSquelch(false);
+        if (txBadge) txBadge.style.display = 'none';
+
+        // All words spoken
+        for (let i = 0; i < rawWords.length; i++) {
+          const w = document.getElementById('r-word-' + i);
+          if (w) w.className = 'radio-word spoken';
+        }
+      };
+
+      utter.onerror = (e) => {
+        console.warn('Speech synthesis error, using visual reveal fallback:', e);
+        stopRadioCarrier();
+        if (txBadge) txBadge.style.display = 'none';
+        fallbackWordReveal(rawWords);
+      };
+
+      try {
+        window.speechSynthesis.speak(utter);
+
+        // Autoplay protection fallback: if onstart doesn't fire within 500ms, run timer reveal
+        setTimeout(() => {
+          if (!speechStarted && ('speechSynthesis' in window && !window.speechSynthesis.speaking)) {
+            fallbackWordReveal(rawWords);
+          }
+        }, 500);
+      } catch (err) {
+        fallbackWordReveal(rawWords);
+      }
+    }
+
+    function fallbackWordReveal(rawWords) {
+      let idx = 0;
+      if (wordRevealInterval) clearInterval(wordRevealInterval);
+      wordRevealInterval = setInterval(() => {
+        if (idx < rawWords.length) {
+          for (let i = 0; i < idx; i++) {
+            const prev = document.getElementById('r-word-' + i);
+            if (prev) prev.className = 'radio-word spoken';
+          }
+          const cur = document.getElementById('r-word-' + idx);
+          if (cur) cur.className = 'radio-word active';
+          idx++;
+        } else {
+          clearInterval(wordRevealInterval);
+          wordRevealInterval = null;
+          const txBadge = document.getElementById('radio-tx-badge');
+          if (txBadge) txBadge.style.display = 'none';
+          for (let i = 0; i < rawWords.length; i++) {
+            const w = document.getElementById('r-word-' + i);
+            if (w) w.className = 'radio-word spoken';
+          }
+          playRadioSquelch(false);
+        }
+      }, 115);
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      if (type === 'gun') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.16);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'pop') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.09);
+
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'snap') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.08);
+
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'engine_rev') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(680, now + 0.8);
+        osc.frequency.exponentialRampToValueAtTime(920, now + 1.5);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + 0.4);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.6);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 1.6);
+      } else if (type === 'green') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else if (type === 'stuck_jam') {
+        // Metallic clatter / screech
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(90, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(160, now + 0.16);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      } else if (type === 'ratchet') {
+        // Mechanical ratchet click
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(460, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.04);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === 'unlocked') {
+        // High crisp release ping
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(650, now);
+        osc.frequency.exponentialRampToValueAtTime(1100, now + 0.12);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } else if (type === 'thud') {
+        // Low bouncy rubber tyre floor impact
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      } else if (type === 'reject') {
+        // Low error buzz
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(95, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.25);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    }
+
+    // Mid-race spoken radio broadcast for complications
+    function speakComplicationRadio(phrase) {
+      if (radioMuted || !('speechSynthesis' in window)) return;
+      try {
+        playRadioSquelch(true);
+        const utter = new SpeechSynthesisUtterance(phrase);
+        const voice = getBestRaceEngineerVoice();
+        if (voice) utter.voice = voice;
+        utter.rate = 1.42; // Fast, urgent race engineer tone
+        utter.pitch = 1.02;
+        utter.volume = 1.0;
+        utter.onstart = () => startRadioCarrier();
+        utter.onend = () => {
+          stopRadioCarrier();
+          playRadioSquelch(false);
+        };
+        utter.onerror = () => stopRadioCarrier();
+        window.speechSynthesis.speak(utter);
+      } catch (e) {}
+    }
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const COLORS = {
+      rossoCorsa: 0x9e0510,     // Deep rich Ferrari racing red (matching BG toolbox & gantry red)
+      darkRed: 0x5a0006,        // Deep shaded wine red
+      chassisBlack: 0x141517,
+      rubberBlack: 0x222428,
+      rimDark: 0x18191c,
+      hubRimRed: 0x9e0510,
+      hubNutSilver: 0xe8ecf2,
+      mechanicalGrey: 0x484b54,
+      darkGrey: 0x2d3036,
+      white: 0xebedf2,
+      yellowFlag: 0xffcc00
+    };
+
+    // Camera: Orthographic Isometric View
+    const aspect = window.innerWidth / window.innerHeight;
+    const viewSize = 25;
+    const camera = new THREE.OrthographicCamera(
+      -viewSize * aspect / 2,
+       viewSize * aspect / 2,
+       viewSize / 2,
+      -viewSize / 2,
+       0.1,
+       500
+    );
+
+    const camDist = 65;
+    camera.position.set(camDist, camDist * 0.82, camDist);
+    camera.lookAt(0, 1.2, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.95;
+    container.appendChild(renderer.domElement);
+
+    // Lights matched to BG.png illumination (light comes from top-right / front-right)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x9aa2b5, 0.85);
+    scene.add(hemiLight);
+
+    const sun = new THREE.DirectionalLight(0xffffff, 1.15);
+    sun.position.set(35, 60, 45);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.camera.near = 10;
+    sun.shadow.camera.far = 160;
+    const d = 24;
+    sun.shadow.camera.left = -d;
+    sun.shadow.camera.right = d;
+    sun.shadow.camera.top = d;
+    sun.shadow.camera.bottom = -d;
+    sun.shadow.bias = -0.0006;
+    scene.add(sun);
+
+    const fillLight = new THREE.DirectionalLight(0x7b93be, 0.35);
+    fillLight.position.set(-30, 20, -35);
+    scene.add(fillLight);
+
+    // Subtle ground shadow receiver directly on top of BG.png
+    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.42 });
+    const groundGeo = new THREE.PlaneGeometry(80, 80);
+    const ground = new THREE.Mesh(groundGeo, shadowMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0.02;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Materials
+    function makeToyMat(color, roughness = 0.22, metalness = 0.05, clearcoat = 0.5) {
+      return new THREE.MeshPhysicalMaterial({
+        color: color,
+        roughness: roughness,
+        metalness: metalness,
+        clearcoat: clearcoat,
+        clearcoatRoughness: 0.15,
+        reflectivity: 0.7
+      });
+    }
+
+    const matRed = makeToyMat(COLORS.rossoCorsa, 0.18, 0.02, 0.8);
+    const matDarkRed = makeToyMat(COLORS.darkRed, 0.22, 0.02, 0.6);
+    const matBlack = makeToyMat(COLORS.chassisBlack, 0.25, 0.08, 0.5);
+    const matRubber = new THREE.MeshStandardMaterial({ color: COLORS.rubberBlack, roughness: 0.85, metalness: 0.02 });
+    const matRubberFresh = new THREE.MeshStandardMaterial({ color: 0x2e3138, roughness: 0.55, metalness: 0.05 });
+    const matRim = makeToyMat(COLORS.rimDark, 0.3, 0.15, 0.4);
+    const matRimRing = makeToyMat(COLORS.hubRimRed, 0.2, 0.1, 0.7);
+    const matRimRingFresh = makeToyMat(0xffe600, 0.15, 0.2, 0.85); // Yellow soft compound accent ring
+    const matNut = new THREE.MeshStandardMaterial({ color: COLORS.hubNutSilver, roughness: 0.25, metalness: 0.85 });
+    const matMech = new THREE.MeshStandardMaterial({ color: COLORS.mechanicalGrey, roughness: 0.45, metalness: 0.4 });
+    const matDarkGrey = new THREE.MeshStandardMaterial({ color: COLORS.darkGrey, roughness: 0.55, metalness: 0.3 });
+    const matWhite = makeToyMat(COLORS.white, 0.2, 0.02, 0.7);
+    const matYellow = makeToyMat(COLORS.yellowFlag, 0.2, 0.02, 0.6);
+
+    // Beveled Brick Helper using BoxGeometry with proper orientation (w=X, h=Y, d=Z)
+    function createBrick(w, h, d, mat) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    // LEGO Stud
+    function createStud(mat = matRed) {
+      const g = new THREE.Group();
+      const cylGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.24, 24);
+      const mesh = new THREE.Mesh(cylGeo, mat);
+      mesh.position.y = 0.12;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      g.add(mesh);
+      return g;
+    }
+
+    // Car Root
+    const carRoot = new THREE.Group();
+    scene.add(carRoot);
+
+    const bodyGroup = new THREE.Group();
+    carRoot.add(bodyGroup);
+
+    // 1. Underfloor & Aerodynamic Skirts (Black)
+    // Central floor plate
+    const floor = createBrick(15.2, 0.38, 5.2, matBlack);
+    floor.position.set(0, 0.45, 0);
+    bodyGroup.add(floor);
+
+    // Front floor extension
+    const frontFloor = createBrick(4.6, 0.3, 7.8, matBlack);
+    frontFloor.position.set(4.8, 0.45, 0);
+    bodyGroup.add(frontFloor);
+
+    // Rear diffuser kick
+    const diff = createBrick(2.2, 0.48, 4.8, matBlack);
+    diff.position.set(-6.8, 0.65, 0);
+    diff.rotation.z = -0.12;
+    bodyGroup.add(diff);
+
+    // 2. Central Monocoque Chassis (Red)
+    const chassis = createBrick(8.2, 1.25, 3.2, matRed);
+    chassis.position.set(-0.2, 1.2, 0);
+    bodyGroup.add(chassis);
+
+    // 3. Sidepods (Red)
+    const podLeft = createBrick(6.4, 1.05, 1.25, matRed);
+    podLeft.position.set(-0.5, 1.15, 2.1);
+    bodyGroup.add(podLeft);
+
+    const podRight = createBrick(6.4, 1.05, 1.25, matRed);
+    podRight.position.set(-0.5, 1.15, -2.1);
+    bodyGroup.add(podRight);
+
+    // Radiator inlet ducts (Black front of sidepods)
+    const ductL = createBrick(0.35, 0.7, 1.0, matBlack);
+    ductL.position.set(2.6, 1.15, 2.1);
+    bodyGroup.add(ductL);
+    const ductR = createBrick(0.35, 0.7, 1.0, matBlack);
+    ductR.position.set(2.6, 1.15, -2.1);
+    bodyGroup.add(ductR);
+
+    // Sidepod white racing decal stripe
+    const stripeL = createBrick(4.2, 0.12, 1.27, matWhite);
+    stripeL.position.set(-0.8, 1.62, 2.1);
+    bodyGroup.add(stripeL);
+    const stripeR = createBrick(4.2, 0.12, 1.27, matWhite);
+    stripeR.position.set(-0.8, 1.62, -2.1);
+    bodyGroup.add(stripeR);
+
+    // 4. Nosecone (Tapered Red Blocks)
+    const nose = createBrick(4.6, 0.85, 2.2, matRed);
+    nose.position.set(5.2, 1.0, 0);
+    nose.rotation.z = -0.06;
+    bodyGroup.add(nose);
+
+    const noseTip = createBrick(1.4, 0.6, 1.6, matRed);
+    noseTip.position.set(7.3, 0.82, 0);
+    noseTip.rotation.z = -0.12;
+    bodyGroup.add(noseTip);
+
+    // Yellow racing shield on nose
+    const shield = createBrick(0.7, 0.1, 0.5, matYellow);
+    shield.position.set(6.6, 1.25, 0);
+    bodyGroup.add(shield);
+
+    // 5. Front Wing Assembly (Black)
+    const fwMain = createBrick(1.6, 0.22, 10.4, matBlack);
+    fwMain.position.set(7.8, 0.42, 0);
+    bodyGroup.add(fwMain);
+
+    const fwUpper = createBrick(1.1, 0.18, 9.8, matBlack);
+    fwUpper.position.set(7.5, 0.65, 0);
+    bodyGroup.add(fwUpper);
+
+    // Endplates
+    const fwPlateL = createBrick(1.8, 0.85, 0.25, matBlack);
+    fwPlateL.position.set(7.7, 0.75, 5.2);
+    bodyGroup.add(fwPlateL);
+    const fwPlateR = createBrick(1.8, 0.85, 0.25, matBlack);
+    fwPlateR.position.set(7.7, 0.75, -5.2);
+    bodyGroup.add(fwPlateR);
+
+    // 6. Cockpit & Driver Helmet
+    const cockpitBase = createBrick(3.4, 0.75, 2.3, matRed);
+    cockpitBase.position.set(0.6, 1.9, 0);
+    bodyGroup.add(cockpitBase);
+
+    const cockpitRecess = createBrick(2.2, 0.4, 1.4, matBlack);
+    cockpitRecess.position.set(0.5, 2.1, 0);
+    bodyGroup.add(cockpitRecess);
+
+    // Halo safety hoop
+    const haloLoop = new THREE.TorusGeometry(1.05, 0.18, 12, 28, Math.PI);
+    const haloMesh = new THREE.Mesh(haloLoop, matRed);
+    haloMesh.rotation.x = -Math.PI / 2;
+    haloMesh.rotation.z = Math.PI / 2;
+    haloMesh.position.set(0.8, 2.45, 0);
+    haloMesh.castShadow = true;
+    bodyGroup.add(haloMesh);
+
+    const haloPillar = createBrick(0.24, 0.8, 0.24, matRed);
+    haloPillar.position.set(1.8, 2.15, 0);
+    bodyGroup.add(haloPillar);
+
+    // Driver Helmet
+    const helmetGroup = new THREE.Group();
+    helmetGroup.position.set(0.2, 2.55, 0);
+    bodyGroup.add(helmetGroup);
+
+    const helmetMesh = new THREE.Mesh(new THREE.SphereGeometry(0.88, 32, 24), matRed);
+    helmetMesh.scale.set(1, 1.08, 0.95);
+    helmetMesh.castShadow = true;
+    helmetGroup.add(helmetMesh);
+
+    const visorGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.45, 32, 1, false, 0, Math.PI * 0.72);
+    const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x111215, roughness: 0.1, metalness: 0.8, clearcoat: 1 });
+    const visor = new THREE.Mesh(visorGeo, visorMat);
+    visor.rotation.y = -Math.PI * 0.36;
+    visor.position.set(0.04, -0.05, 0);
+    helmetGroup.add(visor);
+
+    const stripeGeo = new THREE.CylinderGeometry(0.89, 0.89, 0.28, 32, 1, false, 0, Math.PI);
+    const helmetStripe = new THREE.Mesh(stripeGeo, matWhite);
+    helmetStripe.rotation.z = Math.PI / 2;
+    helmetStripe.rotation.y = Math.PI / 2;
+    helmetStripe.position.set(0, 0.1, 0);
+    helmetGroup.add(helmetStripe);
+
+    // 7. Engine Cover, Airbox & Shark Fin
+    const airbox = createBrick(3.4, 1.35, 1.8, matRed);
+    airbox.position.set(-1.8, 2.3, 0);
+    bodyGroup.add(airbox);
+
+    const intake = createBrick(0.3, 0.55, 0.85, matBlack);
+    intake.position.set(-0.15, 2.55, 0);
+    bodyGroup.add(intake);
+
+    // Shark Fin
+    const sharkFin = createBrick(3.4, 1.1, 0.18, matRed);
+    sharkFin.position.set(-3.2, 2.7, 0);
+    bodyGroup.add(sharkFin);
+
+    // 8. Rear Wing Assembly
+    const rwMain = createBrick(2.2, 0.3, 7.8, matRed);
+    rwMain.position.set(-6.2, 3.4, 0);
+    bodyGroup.add(rwMain);
+
+    const rwFlap = createBrick(1.6, 0.22, 7.6, matRed);
+    rwFlap.position.set(-6.0, 3.75, 0);
+    bodyGroup.add(rwFlap);
+
+    // Rear Wing Pylons
+    const pylonL = createBrick(0.3, 1.8, 0.25, matBlack);
+    pylonL.position.set(-5.6, 2.4, 1.0);
+    pylonL.rotation.z = 0.25;
+    bodyGroup.add(pylonL);
+    const pylonR = createBrick(0.3, 1.8, 0.25, matBlack);
+    pylonR.position.set(-5.6, 2.4, -1.0);
+    pylonR.rotation.z = 0.25;
+    bodyGroup.add(pylonR);
+
+    // Rear Wing Endplates (Horizontal thin plates along Z)
+    const rwPlateL = createBrick(2.6, 1.6, 0.24, matDarkRed);
+    rwPlateL.position.set(-6.1, 3.25, 3.9);
+    bodyGroup.add(rwPlateL);
+    const rwPlateR = createBrick(2.6, 1.6, 0.24, matDarkRed);
+    rwPlateR.position.set(-6.1, 3.25, -3.9);
+    bodyGroup.add(rwPlateR);
+
+    // 9. LEGO Studs
+    const studPositions = [
+      [2.2, 1.9, 0],
+      [-0.4, 1.9, 1.2],
+      [-0.4, 1.9, -1.2],
+      [-1.8, 1.9, 1.2],
+      [-1.8, 1.9, -1.2],
+      [-5.8, 3.65, 2.2],
+      [-5.8, 3.65, -2.2],
+      [-5.8, 3.65, 0]
+    ];
+    studPositions.forEach(([x, y, z]) => {
+      const stud = createStud(matRed);
+      stud.position.set(x, y, z);
+      bodyGroup.add(stud);
+    });
+
+    // --- Axles, Wishbones & Hubs (Chassis Mounted) ---
+    const WHEEL_CONFIGS = [
+      { id: 'FL', name: 'Front Left',  x: 4.8, y: 1.25, z: 4.1,  dir: [0.35, 0, 1],  rotAxis: [0, 0.2, 0.15] },
+      { id: 'FR', name: 'Front Right', x: 4.8, y: 1.25, z: -4.1, dir: [0.35, 0, -1], rotAxis: [0, -0.2, -0.15] },
+      { id: 'RL', name: 'Rear Left',   x: -4.8, y: 1.45, z: 4.3, dir: [-0.35, 0, 1], rotAxis: [0, -0.2, 0.15] },
+      { id: 'RR', name: 'Rear Right',  x: -4.8, y: 1.45, z: -4.3, dir: [-0.35, 0, -1], rotAxis: [0, 0.2, -0.15] }
+    ];
+
+    WHEEL_CONFIGS.forEach(cfg => {
+      const suspGroup = new THREE.Group();
+      bodyGroup.add(suspGroup);
+
+      const inZ = cfg.z > 0 ? 1.6 : -1.6;
+
+      function createRod(x1, y1, z1, x2, y2, z2, radius = 0.08) {
+        const v1 = new THREE.Vector3(x1, y1, z1);
+        const v2 = new THREE.Vector3(x2, y2, z2);
+        const len = v1.distanceTo(v2);
+        const rodGeo = new THREE.CylinderGeometry(radius, radius, len, 12);
+        const rod = new THREE.Mesh(rodGeo, matMech);
+        rod.position.copy(v1).add(v2).multiplyScalar(0.5);
+        rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v2.clone().sub(v1).normalize());
+        rod.castShadow = true;
+        return rod;
+      }
+
+      suspGroup.add(createRod(cfg.x - 0.9, cfg.y + 0.25, inZ, cfg.x, cfg.y, cfg.z * 0.72));
+      suspGroup.add(createRod(cfg.x + 0.9, cfg.y + 0.25, inZ, cfg.x, cfg.y, cfg.z * 0.72));
+      suspGroup.add(createRod(cfg.x - 0.9, cfg.y - 0.45, inZ, cfg.x, cfg.y - 0.2, cfg.z * 0.72));
+      suspGroup.add(createRod(cfg.x + 0.9, cfg.y - 0.45, inZ, cfg.x, cfg.y - 0.2, cfg.z * 0.72));
+      suspGroup.add(createRod(cfg.x, cfg.y + 0.5, inZ * 0.8, cfg.x, cfg.y - 0.1, cfg.z * 0.72, 0.06));
+
+      // Steel Axle Spindle
+      const axleGeo = new THREE.CylinderGeometry(0.16, 0.16, Math.abs(cfg.z) * 0.35, 16);
+      const axle = new THREE.Mesh(axleGeo, matNut);
+      axle.rotation.x = Math.PI / 2;
+      axle.position.set(cfg.x, cfg.y, cfg.z * 0.82);
+      suspGroup.add(axle);
+
+      // Carbon Brake Rotor
+      const discGeo = new THREE.CylinderGeometry(0.72, 0.72, 0.14, 24);
+      const disc = new THREE.Mesh(discGeo, matDarkGrey);
+      disc.rotation.x = Math.PI / 2;
+      disc.position.set(cfg.x, cfg.y, cfg.z * 0.88);
+      disc.castShadow = true;
+      suspGroup.add(disc);
+
+      // Red Caliper
+      const caliper = createBrick(0.45, 0.35, 0.25, matRed);
+      caliper.position.set(cfg.x + 0.3, cfg.y + 0.35, cfg.z * 0.88);
+      suspGroup.add(caliper);
+    });
+
+    // --- Detachable Wheels & Game Model ---
+    function createWheelMesh(isLeft, isFresh = false) {
+      const wheelGroup = new THREE.Group();
+      // Nested spinGroup so rotation around Z spins all wheel elements around the axle!
+      const spinGroup = new THREE.Group();
+      wheelGroup.add(spinGroup);
+
+      const tyreRadius = 1.62;
+      const tyreWidth = 1.35;
+      const tyre = new THREE.Mesh(new THREE.CylinderGeometry(tyreRadius, tyreRadius, tyreWidth, 36), isFresh ? matRubberFresh : matRubber);
+      tyre.rotation.x = Math.PI / 2;
+      tyre.castShadow = true;
+      tyre.receiveShadow = true;
+      spinGroup.add(tyre);
+
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, tyreWidth + 0.04, 32), matRim);
+      rim.rotation.x = Math.PI / 2;
+      spinGroup.add(rim);
+
+      const outerSign = isLeft ? 1 : -1;
+      const faceZ = (tyreWidth / 2 + 0.04) * outerSign;
+
+      const aeroDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.96, 0.96, 0.08, 32), matBlack);
+      aeroDisc.rotation.x = Math.PI / 2;
+      aeroDisc.position.z = faceZ;
+      spinGroup.add(aeroDisc);
+
+      const ringMat = isFresh ? matRimRingFresh : matRimRing;
+      const redRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.06, 12, 36), ringMat);
+      redRing.position.z = faceZ + 0.05 * outerSign;
+      spinGroup.add(redRing);
+
+      const redRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.045, 12, 32), ringMat);
+      redRing2.position.z = faceZ + 0.05 * outerSign;
+      spinGroup.add(redRing2);
+
+      // Distinct Wheel Spoke Pattern (5 spokes) so high-speed rotation is instantly visible
+      const spokeMat = isFresh ? matWhite : matRimRing;
+      for (let s = 0; s < 5; s++) {
+        const angle = (s / 5) * Math.PI * 2;
+        const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.58, 0.06), spokeMat);
+        const spokeDist = 0.62;
+        spoke.position.set(Math.cos(angle) * spokeDist, Math.sin(angle) * spokeDist, faceZ + 0.06 * outerSign);
+        spoke.rotation.z = angle + Math.PI / 2;
+        spinGroup.add(spoke);
+      }
+
+      // High-contrast Pirelli tyre sidewall markings (4 quadrants) to make spinning obvious from any distance
+      const decalMat = isFresh ? matRimRingFresh : matYellow;
+      for (let d = 0; d < 4; d++) {
+        const dAngle = (d / 4) * Math.PI * 2;
+        const decal = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.04), decalMat);
+        const dDist = 1.34;
+        decal.position.set(Math.cos(dAngle) * dDist, Math.sin(dAngle) * dDist, faceZ + 0.02 * outerSign);
+        decal.rotation.z = dAngle + Math.PI / 2;
+        spinGroup.add(decal);
+      }
+
+      const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.22, 6), matNut);
+      nut.rotation.x = Math.PI / 2;
+      nut.position.z = faceZ + 0.12 * outerSign;
+      spinGroup.add(nut);
+
+      const cavity = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.3, 16), matDarkGrey);
+      cavity.rotation.x = Math.PI / 2;
+      cavity.position.z = -(tyreWidth / 2 + 0.02) * outerSign;
+      spinGroup.add(cavity);
+
+      wheelGroup.spinGroup = spinGroup;
+      return wheelGroup;
+    }
+
+    // Wheels Data
+    const wheels = WHEEL_CONFIGS.map(cfg => {
+      const isLeft = cfg.z > 0;
+      const oldMesh = createWheelMesh(isLeft, false);
+      oldMesh.position.set(cfg.x, cfg.y, cfg.z);
+      carRoot.add(oldMesh);
+
+      const freshMesh = createWheelMesh(isLeft, true);
+      freshMesh.position.set(cfg.x + cfg.dir[0] * 8, cfg.y + 6, cfg.z + cfg.dir[2] * 8);
+      freshMesh.visible = false;
+      carRoot.add(freshMesh);
+
+      return {
+        cfg: cfg,
+        oldMesh: oldMesh,
+        freshMesh: freshMesh,
+        state: 'attached_old', // 'attached_old' | 'removing' | 'falling' | 'rolling' | 'installing' | 'completed'
+        progress: 0,
+        restPos: new THREE.Vector3(cfg.x, cfg.y, cfg.z),
+        explodeDir: new THREE.Vector3(...cfg.dir).normalize(),
+        badgeEl: document.getElementById('badge-' + cfg.id),
+        // Rolling & Sky-fall physics properties
+        physPos: new THREE.Vector3(),
+        physVel: new THREE.Vector3(),
+        physRollAngle: 0,
+        pickGrabAttempts: 0,
+        lastGrabTime: 0
+      };
+    });
+
+    // --- Game Logic & Progression ---
+    let gameState = 'waiting';
+    let startTime = 0;
+    let finishTime = 0;
+    let bestTime = localStorage.getItem('f1_pit_best') ? parseFloat(localStorage.getItem('f1_pit_best')) : null;
+
+    if (bestTime) {
+      document.getElementById('best-time').textContent = 'BEST: ' + bestTime.toFixed(2) + ' s';
+    }
+
+    const timerVal = document.getElementById('timer-val');
+    const statusBadge = document.getElementById('status-badge');
+    const actionText = document.getElementById('action-text');
+    const resultModal = document.getElementById('result-modal');
+    const modalTimeVal = document.getElementById('modal-time-val');
+    const modalRating = document.getElementById('modal-rating');
+    const tyresFittedNum = document.getElementById('tyres-fitted-num');
+
+    let carDriveState = 'entering';
+    let carXPos = -38;
+    const targetParkX = 0;
+    let carVelocity = 0;
+
+    function updateTelemetrySlot(id, state, text) {
+      const slot = document.getElementById('slot-' + id);
+      if (!slot) return;
+      slot.className = 'wheel-slot ' + state;
+      const statusSpan = slot.querySelector('.wheel-slot-status');
+      if (statusSpan) statusSpan.textContent = text;
+    }
+
+    // --- Dynamic Pit-Stop Complications Engine: TYRE ALIGNMENT ONLY ---
+    let difficultyMode = 'pro'; // 'rookie' (standard fitting) | 'pro' (tyre alignment required)
+    let activeComplication = null; // null | 'misaligned'
+    let complicationWheelIndex = -1;
+    let plannedComplications = []; // Array of complications (alignment only)
+    let complicationIndexCursor = 0;
+    let isDraggingTyre = false;
+    let draggedWheelIndex = -1;
+
+    // DOM Elements for Complications
+    const diffRookieBtn = document.getElementById('diff-rookie');
+    const diffProBtn = document.getElementById('diff-pro');
+    const alignTargetRing = document.getElementById('align-target-ring');
+
+    if (diffRookieBtn && diffProBtn) {
+      diffRookieBtn.addEventListener('click', () => {
+        difficultyMode = 'rookie';
+        diffRookieBtn.classList.add('active');
+        diffProBtn.classList.remove('active');
+        actionText.textContent = 'ROOKIE MODE // AUTO-ALIGNMENT ACTIVE';
+        resetGame();
+      });
+
+      diffProBtn.addEventListener('click', () => {
+        difficultyMode = 'pro';
+        diffProBtn.classList.add('active');
+        diffRookieBtn.classList.remove('active');
+        actionText.textContent = 'PRO MODE // MANUAL TYRE ALIGNMENT CHALLENGE';
+        resetGame();
+      });
+    }
+
+    function planComplicationsForRun() {
+      plannedComplications = [];
+      complicationIndexCursor = 0;
+      activeComplication = null;
+      complicationWheelIndex = -1;
+
+      if (difficultyMode === 'rookie') {
+        return;
+      }
+
+      // Pro Mode: 1 to 2 wheels will require manual tyre alignment onto the axle
+      const wheelOrder = [0, 1, 2, 3].sort(() => 0.5 - Math.random());
+      // Pick 1 or 2 wheel changes that require manual alignment
+      const alignCount = Math.random() < 0.4 ? 1 : 2;
+      plannedComplications = wheelOrder.slice(0, alignCount);
+    }
+
+    function triggerComplication(type, wheelIdx) {
+      if (type !== 'misaligned') return;
+      activeComplication = 'misaligned';
+      complicationWheelIndex = wheelIdx;
+      const w = wheels[wheelIdx];
+
+      playSound('stuck_jam');
+      w.badgeEl.className = 'wheel-badge misaligned';
+      w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> ALIGN TYRE';
+      updateTelemetrySlot(w.cfg.id, 'incoming', 'ALIGN TYRE');
+      actionText.textContent = w.cfg.name.toUpperCase() + ' // MISALIGNED — DRAG TYRE TO HUB!';
+      speakComplicationRadio("Check the alignment! Get that wheel seated.");
+
+      if (alignTargetRing) alignTargetRing.style.display = 'flex';
+    }
+
+    // Misaligned Tyre Snapping & Seating
+    function resolveAlignment(wIdx) {
+      const w = wheels[wIdx];
+      playSound('snap');
+      if (alignTargetRing) alignTargetRing.style.display = 'none';
+      activeComplication = null;
+
+      w.state = 'installing';
+      w.progress = 0;
+      updateTelemetrySlot(w.cfg.id, 'fitted', 'FITTED');
+      actionText.textContent = w.cfg.name.toUpperCase() + ' // SEATED & LOCKED!';
+      playSound('gun');
+      setTimeout(() => playSound('snap'), 90);
+
+      w.badgeEl.className = 'wheel-badge completed';
+      w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> FITTED';
+      checkCompletion();
+    }
+
+    function resetGame() {
+      stopRadioSpeech();
+      resultModal.classList.remove('active');
+      gameState = 'entering';
+      carDriveState = 'entering';
+      carXPos = -38;
+      carVelocity = 0;
+      carRoot.position.set(carXPos, 0, 0);
+      startTime = 0;
+      finishTime = 0;
+      timerVal.textContent = '0.00 s';
+      timerVal.className = 'f1-timer-clock';
+      statusBadge.textContent = 'APPROACHING';
+      statusBadge.className = 'f1-status-badge';
+      actionText.textContent = 'CAR ROLLING INTO BOX // STAND BY';
+      tyresFittedNum.textContent = '0';
+
+      // Hide alignment guide ring
+      if (alignTargetRing) alignTargetRing.style.display = 'none';
+      activeComplication = null;
+      planComplicationsForRun();
+
+      for (let i = 0; i < 5; i++) {
+        document.getElementById('light-' + i).className = 'g-light red';
+      }
+
+      ['FL', 'FR', 'RL', 'RR'].forEach(id => {
+        updateTelemetrySlot(id, '', 'READY');
+      });
+
+      wheels.forEach(w => {
+        w.state = 'attached_old';
+        w.progress = 0;
+        w.pickGrabAttempts = 0;
+        w.lastGrabTime = 0;
+        w.physRollAngle = 0;
+        w.oldMesh.visible = true;
+        w.oldMesh.position.copy(w.restPos);
+        w.oldMesh.rotation.set(0, 0, 0);
+        if (w.oldMesh.spinGroup) w.oldMesh.spinGroup.rotation.set(0, 0, 0);
+
+        w.freshMesh.visible = false;
+        w.freshMesh.position.copy(w.restPos);
+        w.freshMesh.rotation.set(0, 0, 0);
+        if (w.freshMesh.spinGroup) w.freshMesh.spinGroup.rotation.set(0, 0, 0);
+
+        w.badgeEl.className = 'wheel-badge remove';
+        w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> REMOVE TYRE';
+        w.badgeEl.style.display = 'none';
+      });
+    }
+
+    function handleWheelAction(wheelIndex) {
+      initAudio();
+      if (gameState !== 'racing') return;
+
+      const w = wheels[wheelIndex];
+
+      // If tyre alignment is active on another wheel, focus on that wheel
+      if (activeComplication === 'misaligned' && complicationWheelIndex !== wheelIndex) {
+        playSound('reject');
+        return;
+      }
+
+      if (w.state === 'attached_old') {
+        // Step 1: Click tyre -> floats straight up and flies quickly out of frame
+        w.state = 'removing';
+        w.progress = 0;
+        updateTelemetrySlot(w.cfg.id, 'removing', 'REMOVED');
+        actionText.textContent = w.cfg.name.toUpperCase() + ' // TYRE REMOVED — CATCH INCOMING RUBBER!';
+        playSound('gun');
+        setTimeout(() => playSound('pop'), 50);
+
+        w.badgeEl.style.display = 'none';
+      }
+      else if (w.state === 'rolling' || w.state === 'falling') {
+        tryGrabRollingTyre(wheelIndex);
+      }
+      else if (w.state === 'ready_to_install') {
+        // Prompt player to drag tyre to axle
+        actionText.textContent = w.cfg.name.toUpperCase() + ' // DRAG TYRE TOWARDS BLUE HUB TARGET TO FIT!';
+        if (alignTargetRing) alignTargetRing.style.display = 'flex';
+      }
+    }
+
+    // Tricky / slippery touch mechanic when grabbing a bouncing & rolling tyre
+    function tryGrabRollingTyre(wheelIndex) {
+      const w = wheels[wheelIndex];
+      const now = performance.now();
+      if (now - w.lastGrabTime < 180) return; // Debounce rapid spam
+      w.lastGrabTime = now;
+      w.pickGrabAttempts++;
+
+      // Slippery tyre: 1st tap kicks/spins away faster, 2nd tap secures it into ready-to-drag state
+      const isCaught = w.pickGrabAttempts >= 2;
+      if (!isCaught) {
+        // Tyre slips out of pit crew hands!
+        playSound('pop');
+        // Impart a gentle sideways deflection
+        w.physVel.x += (Math.random() - 0.5) * 8;
+        w.physVel.z += (Math.random() - 0.5) * 8;
+        w.physVel.y = Math.max(w.physVel.y, 3.5); // Small bounce hop
+        actionText.textContent = w.cfg.name.toUpperCase() + ' // SLIPPED! GRAB IT AGAIN!';
+        w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> SLIPPED! TAP AGAIN';
+        w.badgeEl.className = 'wheel-badge jam';
+        return;
+      }
+
+      // Caught securely! Now ready to be dragged onto axle hub
+      playSound('unlocked');
+      w.state = 'ready_to_install';
+      // Place hovering close to the axle ready for the drag installation
+      w.freshMesh.position.set(w.restPos.x + (w.cfg.dir[0] * 2.4), w.restPos.y + 1.6, w.restPos.z + (w.cfg.dir[2] * 2.4));
+      w.freshMesh.rotation.set(0, 0, 0);
+
+      w.badgeEl.className = 'wheel-badge install';
+      w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> DRAG TO HUB';
+      updateTelemetrySlot(w.cfg.id, 'incoming', 'DRAG TO FIT');
+      actionText.textContent = w.cfg.name.toUpperCase() + ' // CAUGHT! DRAG TYRE ONTO BLUE HUB TARGET';
+
+      if (alignTargetRing) alignTargetRing.style.display = 'flex';
+    }
+
+    wheels.forEach((w, index) => {
+      w.badgeEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleWheelAction(index);
+      });
+      w.badgeEl.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        handleWheelAction(index);
+      });
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(-999, -999);
+
+    window.addEventListener('pointerdown', (e) => {
+      initAudio();
+      if (gameState !== 'racing') return;
+
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      // 1. Direct Mid-Air / Floor Catch & Drag: Player can grab a falling, rolling, or ready tyre in mid-air!
+      for (let idx = 0; idx < wheels.length; idx++) {
+        const w = wheels[idx];
+        if (w.state === 'falling' || w.state === 'rolling' || w.state === 'ready_to_install') {
+          const hit = raycaster.intersectObjects(w.freshMesh.children, true);
+          if (hit.length > 0) {
+            isDraggingTyre = true;
+            draggedWheelIndex = idx;
+
+            // Catch instantly out of the sky / floor into hands
+            w.state = 'ready_to_install';
+            w.physVel.set(0, 0, 0); // Halt ballistic physics
+            w.pickGrabAttempts = 2; // Immediately secured
+
+            playSound('unlocked');
+            setTimeout(() => playSound('pop'), 60);
+
+            w.badgeEl.className = 'wheel-badge install';
+            w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> DRAGGING';
+            updateTelemetrySlot(w.cfg.id, 'incoming', 'DRAGGING');
+            actionText.textContent = w.cfg.name.toUpperCase() + ' // CAUGHT MID-AIR! DRAG ONTO AXLE SPINDLE';
+
+            if (alignTargetRing) alignTargetRing.style.display = 'flex';
+            return;
+          }
+        }
+      }
+
+      // 2. Handle clicks / taps on tyres or badges (removing old tyres)
+      wheels.forEach((w, idx) => {
+        const hitOld = raycaster.intersectObjects(w.oldMesh.children, true);
+        if (hitOld.length > 0) {
+          handleWheelAction(idx);
+        }
+      });
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDraggingTyre || draggedWheelIndex < 0) return;
+      const w = wheels[draggedWheelIndex];
+
+      // Drag projection onto 3D world plane passing through wheel restPos
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -w.restPos.z);
+      const intersectionPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(plane, intersectionPoint);
+
+      if (intersectionPoint) {
+        // Smoothly position tyre under player's touch/pointer
+        w.freshMesh.position.x = intersectionPoint.x;
+        w.freshMesh.position.y = Math.max(1.2, intersectionPoint.y);
+        w.physPos.copy(w.freshMesh.position);
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (!isDraggingTyre || draggedWheelIndex < 0) return;
+      const w = wheels[draggedWheelIndex];
+      isDraggingTyre = false;
+
+      // Distance from target hub position
+      const dist = w.freshMesh.position.distanceTo(w.restPos);
+      if (dist < 3.2) {
+        // Snapped successfully into hub target zone!
+        w.freshMesh.position.copy(w.restPos);
+        resolveAlignment(draggedWheelIndex);
+      } else {
+        // If released mid-air away from hub, hold hovering near hub for easy follow-up drag
+        playSound('reject');
+        w.freshMesh.position.set(w.restPos.x + (w.cfg.dir[0] * 2.2), w.restPos.y + 1.4, w.restPos.z + (w.cfg.dir[2] * 2.2));
+        w.physPos.copy(w.freshMesh.position);
+        actionText.textContent = w.cfg.name.toUpperCase() + ' // MISSED HUB! DRAG DIRECTLY INTO TARGET RING';
+      }
+      draggedWheelIndex = -1;
+    });
+
+    function checkCompletion() {
+      let count = 0;
+      wheels.forEach((w, i) => {
+        if (w.state === 'completed' || w.state === 'installing') {
+          count++;
+        }
+      });
+
+      tyresFittedNum.textContent = count;
+
+      if (count === 4) {
+        gameState = 'completed';
+        finishTime = performance.now();
+        const duration = (finishTime - startTime) / 1000;
+        timerVal.textContent = duration.toFixed(2) + ' s';
+        statusBadge.textContent = 'STOP COMPLETED';
+        statusBadge.className = 'f1-status-badge complete';
+
+        // Hide alignment guide ring
+        if (alignTargetRing) alignTargetRing.style.display = 'none';
+
+        for (let i = 0; i < 5; i++) {
+          document.getElementById('light-' + i).className = 'g-light green';
+        }
+        playSound('green');
+        setTimeout(() => playSound('engine_rev'), 150);
+
+        wheels.forEach(w => w.badgeEl.style.display = 'none');
+
+        if (!bestTime || duration < bestTime) {
+          bestTime = duration;
+          localStorage.setItem('f1_pit_best', bestTime.toString());
+          document.getElementById('best-time').textContent = bestTime.toFixed(2) + ' s (RECORD)';
+          timerVal.className = 'f1-timer-clock record';
+        } else {
+          timerVal.className = 'f1-timer-clock fast';
+        }
+
+        actionText.textContent = 'ALL 4 TYRES FITTED // CAR RELEASED — GO GO GO!';
+
+        setTimeout(() => {
+          gameState = 'exiting';
+          carDriveState = 'exiting';
+        }, 550);
+
+        setTimeout(() => {
+          showResults(duration);
+        }, 1600);
+      }
+    }
+
+    // --- 30+ Original Tier-Based Ferrari Radio Roasts ---
+    // --- Original Tier-Based Ferrari Radio Roasts & Iconic Sarcastic F1 Memes/GIFs ---
+    const FERRARI_ROASTS = {
+      elite: {
+        quotes: [
+          "SUB-FIVE SECONDS. INCREDIBLE. WE'VE FINALLY DISCOVERED HOW TO CHANGE FOUR TYRES.",
+          "SUBLIME WORK. QUICK, NOBODY TELL STRATEGY.",
+          "THAT WAS ACTUALLY GOOD. CHECK THE TIMING SYSTEM FOR SENSOR FAILURE.",
+          "A PERFECT PIT STOP. SOMEONE AT MARANELLO IS CURRENTLY HAVING A PANIC ATTACK.",
+          "LOOK AT US, MAKING COMPETENT DECISIONS. ABSOLUTELY TERRIFYING.",
+          "FIVE SECONDS? WHO HIRED PROFESSIONAL PIT CREWS WITHOUT TELLING US?",
+          "STOP THE PRESSES. WE DIDN'T LEAVE A WHEEL NUT IN THE HOSPITALITY TENT."
+        ],
+        gifs: [
+          { url: "https://media.giphy.com/media/ro2tOPq8nPq0g/giphy.gif", caption: "DISBELIEF // WE ACTUALLY DID IT" },
+          { url: "https://media.giphy.com/media/7Jq6ufAgLmexk0WIGt/giphy.gif", caption: "ALONSO APPROVES // RARE COMPETENCE" },
+          { url: "https://media.giphy.com/media/dujS0i87jCsy5bWv9k/giphy.gif", caption: "CELEBRATION // DO NOT PANIC" },
+          { url: "https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif", caption: "PIT WALL // SHEER SHOCK & EXCITEMENT" },
+          { url: "https://media.giphy.com/media/lszAB3TzFtDxUODzb8/giphy.gif", caption: "BINOTTO // LAUGHING IN SURPRISE" }
+        ]
+      },
+      good: {
+        quotes: [
+          "SIX SECONDS. BEAUTIFUL. DID WE CHANGE THE TYRES OR REBUILD MARANELLO?",
+          "DECENT STOP. DON'T WORRY, STRATEGY WILL STILL FIND A WAY TO RUIN THE RACE.",
+          "SOLID WORK. ONLY TWO BUSINESS DAYS TO CHANGE FOUR PIECES OF RUBBER.",
+          "THE TYRES ARE FRESH. THE STRATEGY IS STILL PURE 1996 VINTAGE.",
+          "WE CHANGED ALL FOUR WHEELS ON THE FIRST ATTEMPT. A HISTORIC SCUDERIA MILESTONE.",
+          "OKAY STOP. PLAN C IS NOW IN EFFECT. WE DON'T KNOW WHAT PLAN C IS, BUT IT SOUNDS CLEVER."
+        ],
+        gifs: [
+          { url: "https://media.giphy.com/media/ehU9JDn7IUa4UjPXpP/giphy.gif", caption: "BINOTTO NOD // WE ARE CHECKING" },
+          { url: "https://media.giphy.com/media/j6uK36yJJ27KqVqQTz/giphy.gif", caption: "KIMI RAIKKONEN // BWOAH WHATEVER" },
+          { url: "https://media.giphy.com/media/IELPp4xE7W04RHU6oq/giphy.gif", caption: "QUESTION? // WE ARE CHECKING" },
+          { url: "https://media.giphy.com/media/L0qTl8hl84EDly62J1/giphy.gif", caption: "ALONSO // WATCHING FROM THE DECKCHAIR" },
+          { url: "https://media.giphy.com/media/wMvESGxZ0Cqd2/giphy.gif", caption: "ACCEPTABLE PACE // FOR NOW" }
+        ]
+      },
+      average: {
+        quotes: [
+          "WAS THAT A PIT STOP OR A MANDATORY TEAM-BUILDING MEDITATION EXERCISE?",
+          "THE TYRES ARE NEW. THE PROBLEMS REMAIN FACTORY ORIGINAL AND FULLY WARRANTED.",
+          "WE LOST A LITTLE TIME. GOOD THING WE HAVE SO MUCH CHAMPIONSHIP LEAD TO SPARE. OH WAIT.",
+          "COPY, SLOW BUTTON ON. WE ARE CURRENTLY DEBATING WHETHER TYRES ARE ROUND.",
+          "NICE PACE. WE'RE CONFIDENT WE'LL CATCH UP DURING THE 2029 REGULATION CYCLE.",
+          "TEN SECONDS. DID WE STOP TO ESPRESSO-TEST THE LEFT FRONT?",
+          "WE FITTED THE HARD TYRES IN DRY SUNLIGHT. CLASSIC FERRARI PRECISION."
+        ],
+        gifs: [
+          { url: "https://media.giphy.com/media/2tTLnEwpMkdMcldAyN/giphy.gif", caption: "TYPICAL FERRARI SUNDAY // PIT WALL DEBATE" },
+          { url: "https://media.giphy.com/media/YqbByPtYm3GpZ92K2c/giphy.gif", caption: "BINOTTO CONFUSED // WE ARE CALCULATING" },
+          { url: "https://media.giphy.com/media/cODhz546kO4rE8q48v/giphy.gif", caption: "SAINZ // STOP INVENTING!" },
+          { url: "https://media.giphy.com/media/u5Bzpt0PX1VCg/giphy.gif", caption: "FERRARI FANS WATCHING // POPCORN READY" },
+          { url: "https://media.giphy.com/media/QMHoU66Jx56344W5HN/giphy.gif", caption: "THIS IS FINE // STRATEGY PLAN E" }
+        ]
+      },
+      slow: {
+        quotes: [
+          "EXCELLENT. DID WE ORDER THE TYRES VIA CARRIER PIGEON FROM BOLOGNA?",
+          "FOUR TYRES. ONE CAR. AND SOMEHOW, A FEATURE-LENGTH DOCUMENTARY IN BETWEEN.",
+          "THE DRIVER IS CURRENTLY GROWING A FULL BEARD IN THE COCKPIT. HURRY UP.",
+          "WE COULD HAVE ASSEMBLED AN ENTIRE SF-24 FROM RAW ALUMINIUM IN THAT TIME.",
+          "THAT WASN'T A PIT STOP. THAT WAS AN UNSCHEDULED SABBATICAL.",
+          "COPY. WE ARE CHECKING. WE ARE STILL CHECKING. WE WILL CHECK TOMORROW AS WELL.",
+          "STOP INVENTING! PLEASE STOP INVENTING AND JUST ATTACH THE WHEEL!"
+        ],
+        gifs: [
+          { url: "https://media.giphy.com/media/8vUEXZA2me7vnuUvrs/giphy.gif", caption: "LECLERC IN THE COCKPIT // PURE AGONY" },
+          { url: "https://media.giphy.com/media/TdfyKrN7HGTIY/giphy.gif", caption: "SAINZ DISBELIEF // STOP INVENTING PLEASE" },
+          { url: "https://media.giphy.com/media/UpExHeyElWReE/giphy.gif", caption: "TOTO WOLFF HEADSET SLAM // UNACCEPTABLE" },
+          { url: "https://media.giphy.com/media/2d98nRiVn6IZ4hDPKn/giphy.gif", caption: "BINOTTO SHRUG // WHAT CAN YOU DO?" },
+          { url: "https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif", caption: "FERRARI GARAGE // TOTAL DISASTER" }
+        ]
+      },
+      disaster: {
+        quotes: [
+          "BOX, BOX. ACTUALLY, NEVER MIND. LET'S JUST CLOSE THE GARAGE AND GO HOME.",
+          "THE TYRES ARE READY. THE COMPETENCE IS STILL STUCK IN CUSTOMS AT MALPENSA.",
+          "WE TURNED FOUR WHEELS INTO A UNIVERSITY GROUP PROJECT. NOBODY KNOWS WHO IS RESPONSIBLE.",
+          "INCREDIBLE. WE HAVE OFFICIALLY LOST TIME TO A CAR PARKED IN THE MUSEUM.",
+          "SOMEONE CHECK WHETHER THE PIT CREW IS CURRENTLY RUNNING A WINDOWS 95 UPDATE.",
+          "TWENTY SECONDS. WERE WE NEGOTIATING WHEEL OWNERSHIP WITH AN ARBITRATION PANEL?",
+          "IF WE PIT AGAIN TODAY, WE WILL FINISH THE RACE DIRECTLY IN THE MONACO HARBOUR."
+        ],
+        gifs: [
+          { url: "https://media.giphy.com/media/69v7Zg2hk6RXU4znK6/giphy.gif", caption: "LECLERC NOOOOO SCREAM // HEARTBREAK" },
+          { url: "https://media.giphy.com/media/1xV82gYzeGbdtgwdSZ/giphy.gif", caption: "TOTO DESK SMASH // RAGE MODE" },
+          { url: "https://media.giphy.com/media/4KF85OSbyjVOfyjksJ/giphy.gif", caption: "BINOTTO WALKING AWAY // I CANNOT" },
+          { url: "https://media.giphy.com/media/d5ZZImI4geA20vQ0XV/giphy.gif", caption: "LEAVING THE PIT WALL IN SHAME" },
+          { url: "https://media.giphy.com/media/d2lcHJTG5Tscg/giphy.gif", caption: "TOTAL SCUDERIA COLLAPSE" }
+        ]
+      }
+    };
+
+    let lastRoast = '';
+    let lastGifUrl = '';
+
+    function getFerrariRoastAndMeme(duration) {
+      let tierData = null;
+      let tierLabel = '';
+
+      if (duration < 5.0) {
+        tierData = FERRARI_ROASTS.elite;
+        tierLabel = 'ELITE EXECUTION // SUB-5.0S';
+      } else if (duration < 8.0) {
+        tierData = FERRARI_ROASTS.good;
+        tierLabel = 'STANDARD PACE // 5.0 - 7.9S';
+      } else if (duration < 12.0) {
+        tierData = FERRARI_ROASTS.average;
+        tierLabel = 'PIT WALL DELAY // 8.0 - 11.9S';
+      } else if (duration < 18.0) {
+        tierData = FERRARI_ROASTS.slow;
+        tierLabel = 'EXTENDED STOP // 12.0 - 17.9S';
+      } else {
+        tierData = FERRARI_ROASTS.disaster;
+        tierLabel = 'STRATEGY DISASTER // 18.0S+';
+      }
+
+      // Filter out immediately repeated roast
+      const availableQuotes = tierData.quotes.filter(r => r !== lastRoast);
+      const chosenQuote = availableQuotes.length > 0 
+        ? availableQuotes[Math.floor(Math.random() * availableQuotes.length)] 
+        : tierData.quotes[0];
+      lastRoast = chosenQuote;
+
+      // Filter out immediately repeated GIF
+      const availableGifs = tierData.gifs.filter(g => g.url !== lastGifUrl);
+      const chosenGif = availableGifs.length > 0 
+        ? availableGifs[Math.floor(Math.random() * availableGifs.length)] 
+        : tierData.gifs[0];
+      lastGifUrl = chosenGif.url;
+
+      return { roast: chosenQuote, gif: chosenGif, tier: tierLabel };
+    }
+
+    function showResults(duration) {
+      modalTimeVal.textContent = duration.toFixed(2).toUpperCase() + ' S';
+
+      // Pick category-accurate roast and matching reaction GIF
+      const result = getFerrariRoastAndMeme(duration);
+      document.getElementById('modal-tier-tag').textContent = result.tier;
+      
+      const memeImg = document.getElementById('ferrari-meme-img');
+      const memeCaption = document.getElementById('ferrari-meme-caption');
+      if (memeImg && result.gif) {
+        memeImg.onerror = () => {
+          // If a GIF ever encounters a network blip or CDN throttle, fall back to rock-solid Ferrari meme
+          memeImg.onerror = null;
+          memeImg.src = 'https://media.giphy.com/media/2tTLnEwpMkdMcldAyN/giphy.gif';
+        };
+        memeImg.src = result.gif.url;
+        memeCaption.textContent = result.gif.caption;
+      }
+
+      resultModal.classList.add('active');
+
+      // Trigger Synchronized Team Radio Voice Audio with Web Audio squelch & word reveal!
+      playSynchronizedRadioDialogue(result.roast);
+    }
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      initAudio();
+      resetGame();
+    });
+
+    const tempVec = new THREE.Vector3();
+    function updateBadges() {
+      if (gameState !== 'racing') {
+        wheels.forEach(w => w.badgeEl.style.display = 'none');
+        if (alignTargetRing) alignTargetRing.style.display = 'none';
+        return;
+      }
+
+      wheels.forEach((w, idx) => {
+        if (w.state === 'removing') {
+          w.badgeEl.style.display = 'none';
+          return;
+        }
+
+        let activeTarget = (w.state === 'ready_to_install' || w.state === 'installing' || w.state === 'falling' || w.state === 'rolling') ? w.freshMesh : w.oldMesh;
+        activeTarget.getWorldPosition(tempVec);
+
+        // Position alignment guide ring right on the axle hub when tyre is ready to install or being dragged
+        const isFocusWheel = (isDraggingTyre && draggedWheelIndex === idx) || (!isDraggingTyre && w.state === 'ready_to_install');
+        if (isFocusWheel && alignTargetRing) {
+          const targetHubWorld = w.restPos.clone().add(carRoot.position);
+          targetHubWorld.project(camera);
+          const thSx = (targetHubWorld.x * 0.5 + 0.5) * window.innerWidth;
+          const thSy = (-targetHubWorld.y * 0.5 + 0.5) * window.innerHeight;
+          alignTargetRing.style.left = thSx + 'px';
+          alignTargetRing.style.top = thSy + 'px';
+          alignTargetRing.style.display = 'flex';
+        }
+
+        // Float badge slightly above tyre
+        tempVec.y += 1.6;
+        tempVec.project(camera);
+
+        const sx = (tempVec.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-tempVec.y * 0.5 + 0.5) * window.innerHeight;
+
+        w.badgeEl.style.left = sx + 'px';
+        w.badgeEl.style.top = sy + 'px';
+        w.badgeEl.style.display = 'flex';
+      });
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+
+      // State 1: Car rolling swiftly into pit box (Faster entry)
+      if (carDriveState === 'entering') {
+        const dx = targetParkX - carXPos;
+        const moveStep = dx * 7.5 * dt;
+        carXPos += moveStep;
+
+        // Roll wheels: Tyre radius is 1.62, rotation angle delta is dx / radius
+        const rollDelta = -(moveStep / 1.62) * 2.2;
+        wheels.forEach(w => {
+          if (w.oldMesh.spinGroup) {
+            w.oldMesh.spinGroup.rotation.z += rollDelta;
+          } else {
+            w.oldMesh.rotation.z += rollDelta;
+          }
+        });
+
+        // Stops and becomes completely stationary
+        if (Math.abs(dx) < 0.05) {
+          carXPos = targetParkX;
+          carDriveState = 'parked';
+          gameState = 'racing';
+          startTime = performance.now();
+          statusBadge.textContent = 'STOP IN PROGRESS';
+          statusBadge.className = 'f1-status-badge in-progress';
+          actionText.textContent = 'SELECT TYRE TO REMOVE // CREW ENGAGED';
+        }
+        carRoot.position.x = carXPos;
+      }
+      // State 2: Car accelerating rapidly out of pit lane (Fast snappy launch)
+      else if (carDriveState === 'exiting') {
+        carVelocity += 75 * dt;
+        const moveStep = carVelocity * dt;
+        carXPos += moveStep;
+        carRoot.position.x = carXPos;
+
+        // High-speed wheel rotation on exit!
+        const exitRollDelta = -(moveStep / 1.62) * 2.4;
+        wheels.forEach(w => {
+          if (w.freshMesh.spinGroup) {
+            w.freshMesh.spinGroup.rotation.z += exitRollDelta;
+          } else {
+            w.freshMesh.rotation.z += exitRollDelta;
+          }
+        });
+
+        carRoot.rotation.z = THREE.MathUtils.lerp(carRoot.rotation.z, -0.06, 0.15);
+      } else {
+        carRoot.rotation.z = 0;
+      }
+
+      // Live Timer: ONLY runs once car is stationary and in pit stop!
+      if (gameState === 'racing') {
+        const curDur = (performance.now() - startTime) / 1000;
+        timerVal.textContent = curDur.toFixed(2) + ' s';
+      }
+
+      // Wheels Animation State Machine
+      wheels.forEach((w, idx) => {
+        if (w.state === 'attached_old') {
+          w.oldMesh.position.copy(w.restPos);
+        }
+
+        // Old tyre clicked: shoots straight UP into the sky
+        if (w.state === 'removing') {
+          w.progress = Math.min(1, w.progress + dt * 4.8);
+          const upDist = Math.pow(w.progress, 1.8) * 36;
+          w.oldMesh.position.set(
+            w.restPos.x,
+            w.restPos.y + upDist,
+            w.restPos.z
+          );
+          w.oldMesh.rotation.z += dt * 12;
+
+          if (w.progress >= 1) {
+            w.oldMesh.visible = false;
+            // Fresh tyre DROPS FROM THE SKY!
+            w.state = 'falling';
+            w.freshMesh.visible = true;
+            w.pickGrabAttempts = 0;
+
+            // Spawn above near wheel's pit stall area with gentle scatter
+            const skyX = w.restPos.x + (Math.random() - 0.5) * 3;
+            const skyZ = w.restPos.z + (w.cfg.z > 0 ? 2.2 : -2.2) + (Math.random() - 0.5) * 2;
+            w.physPos.set(skyX, 22, skyZ);
+            w.freshMesh.position.copy(w.physPos);
+
+            // Controlled velocity: stay tight in pit box work zone
+            const outX = (Math.random() - 0.5) * 4;
+            const outZ = (w.cfg.z > 0 ? 1 : -1) * (2.5 + Math.random() * 2.5);
+            w.physVel.set(outX, -14, outZ);
+            w.physRollAngle = 0;
+
+            updateTelemetrySlot(w.cfg.id, 'incoming', 'FALLING');
+            actionText.textContent = w.cfg.name.toUpperCase() + ' // TYRE DROPPED — CATCH & DRAG TO AXLE!';
+
+            w.badgeEl.className = 'wheel-badge rolling';
+            w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> CATCH TYRE';
+            w.badgeEl.style.display = 'flex';
+          }
+        }
+        // Fresh tyre in flight / rolling across pit lane floor
+        else if (w.state === 'falling' || w.state === 'rolling') {
+          // Gravity
+          w.physVel.y -= 38 * dt;
+
+          // Air / ground movement
+          w.physPos.x += w.physVel.x * dt;
+          w.physPos.y += w.physVel.y * dt;
+          w.physPos.z += w.physVel.z * dt;
+
+          const tyreRadius = 1.62;
+          const groundY = 1.35; // Ground contact level
+
+          // Ground bounce & roll transition
+          if (w.physPos.y <= groundY) {
+            w.physPos.y = groundY;
+            if (Math.abs(w.physVel.y) > 3) {
+              playSound('thud');
+              w.physVel.y = -w.physVel.y * 0.38; // Elastic rubber bounce
+            } else {
+              w.physVel.y = 0;
+              w.state = 'rolling';
+            }
+
+            // Rolling ground friction
+            w.physVel.x *= 0.985;
+            w.physVel.z *= 0.985;
+
+            // Maintain gentle roll momentum in close range
+            const horizSpeed = Math.sqrt(w.physVel.x * w.physVel.x + w.physVel.z * w.physVel.z);
+            if (horizSpeed < 1.8 && w.state === 'rolling') {
+              const ang = Math.random() * Math.PI * 2;
+              w.physVel.x += Math.cos(ang) * 2.8;
+              w.physVel.z += Math.sin(ang) * 2.8;
+            }
+          }
+
+          // Tighter Pit Lane Bounds: Keep tyres close to the car & pit box
+          const minX = -12, maxX = 12;
+          const minZ = -10, maxZ = 10;
+
+          if (w.physPos.x < minX) {
+            w.physPos.x = minX;
+            w.physVel.x = Math.abs(w.physVel.x) * 0.8 + 1.5;
+            playSound('thud');
+          } else if (w.physPos.x > maxX) {
+            w.physPos.x = maxX;
+            w.physVel.x = -Math.abs(w.physVel.x) * 0.8 - 1.5;
+            playSound('thud');
+          }
+
+          if (w.physPos.z < minZ) {
+            w.physPos.z = minZ;
+            w.physVel.z = Math.abs(w.physVel.z) * 0.8 + 1.5;
+            playSound('thud');
+          } else if (w.physPos.z > maxZ) {
+            w.physPos.z = maxZ;
+            w.physVel.z = -Math.abs(w.physVel.z) * 0.8 - 1.5;
+            playSound('thud');
+          }
+
+          // Rigid Car Body & Chassis Collision: Tyres can NEVER clip or pass through the car!
+          // Car bounds: X [-7.8 to 7.8], Y [0 to 3.8], Z [-2.85 to 2.85]
+          const carMinX = -7.6, carMaxX = 7.6;
+          const carMinZ = -2.85, carMaxZ = 2.85;
+          const carTopY = 3.6;
+
+          if (w.physPos.x > carMinX && w.physPos.x < carMaxX &&
+              w.physPos.z > carMinZ && w.physPos.z < carMaxZ &&
+              w.physPos.y < carTopY) {
+
+            // Calculate overlap penetration along X and Z
+            const distToLeft = Math.abs(w.physPos.z - carMaxZ);   // +Z side
+            const distToRight = Math.abs(w.physPos.z - carMinZ);  // -Z side
+            const distToFront = Math.abs(w.physPos.x - carMaxX);  // +X nose
+            const distToRear = Math.abs(w.physPos.x - carMinX);   // -X tail
+
+            const minOverlap = Math.min(distToLeft, distToRight, distToFront, distToRear);
+
+            if (minOverlap === distToLeft) {
+              // Push out to positive Z (left pit lane)
+              w.physPos.z = carMaxZ;
+              w.physVel.z = Math.abs(w.physVel.z) * 0.8 + 2.4;
+              playSound('thud');
+            } else if (minOverlap === distToRight) {
+              // Push out to negative Z (right pit lane)
+              w.physPos.z = carMinZ;
+              w.physVel.z = -Math.abs(w.physVel.z) * 0.8 - 2.4;
+              playSound('thud');
+            } else if (minOverlap === distToFront) {
+              // Rebound off front nose (+X)
+              w.physPos.x = carMaxX;
+              w.physVel.x = Math.abs(w.physVel.x) * 0.8 + 2.4;
+              playSound('thud');
+            } else {
+              // Rebound off rear wing / diffuser (-X)
+              w.physPos.x = carMinX;
+              w.physVel.x = -Math.abs(w.physVel.x) * 0.8 - 2.4;
+              playSound('thud');
+            }
+          }
+
+          // Dynamic 3D Rolling Rotation based on velocity
+          const speed = Math.sqrt(w.physVel.x * w.physVel.x + w.physVel.z * w.physVel.z);
+          w.physRollAngle += (speed / tyreRadius) * dt * (w.physVel.x >= 0 ? -1 : 1);
+
+          w.freshMesh.position.copy(w.physPos);
+          if (w.freshMesh.spinGroup) {
+            w.freshMesh.spinGroup.rotation.z = w.physRollAngle;
+          } else {
+            w.freshMesh.rotation.z = w.physRollAngle;
+          }
+
+          // Update badge label while tyre is in motion
+          if (w.pickGrabAttempts === 0) {
+            w.badgeEl.innerHTML = '<span class="wheel-badge-code">' + w.cfg.id + '</span> CATCH TYRE';
+            w.badgeEl.className = 'wheel-badge rolling';
+          }
+        }
+        // User clicks fresh tyre: installs directly onto axle
+        else if (w.state === 'installing') {
+          w.progress = Math.min(1, w.progress + dt * 8.5);
+          const t = 1 - w.progress;
+          const currentY = w.restPos.y + 1.8 * t;
+          w.freshMesh.position.set(w.restPos.x, currentY, w.restPos.z);
+
+          if (w.progress >= 1) {
+            w.state = 'completed';
+            w.freshMesh.position.copy(w.restPos);
+            w.freshMesh.rotation.set(0, 0, 0);
+          }
+        }
+      });
+
+      updateBadges();
+
+      renderer.render(scene, camera);
+    }
+
+    resetGame();
+    animate();
+
+    window.addEventListener('resize', () => {
+      const newAspect = window.innerWidth / window.innerHeight;
+      camera.left = -viewSize * newAspect / 2;
+      camera.right = viewSize * newAspect / 2;
+      camera.top = viewSize / 2;
+      camera.bottom = -viewSize / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+  </script>
+</body>
+</html>

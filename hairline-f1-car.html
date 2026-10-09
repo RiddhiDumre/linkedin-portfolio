@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hairline — Ferrari SF-24 F1 Vector</title>
+  <style>
+    :root {
+      --hairline-plate: #0d0e12;
+      --hairline-hi: #ff2800;
+      --hairline-edge: #e4e4e7;
+      --hairline-mid: #71717a;
+      --hairline-lo: #27272a;
+      --hairline-stroke: 1;
+      --bg: #090a0f;
+      --text: #e4e4e7;
+      --accent: #ef4444;
+    }
+
+    [data-theme="light"] {
+      --hairline-plate: #f4f4f5;
+      --hairline-hi: #dc2626;
+      --hairline-edge: #18181b;
+      --hairline-mid: #71717a;
+      --hairline-lo: #e4e4e7;
+      --bg: #ffffff;
+      --text: #18181b;
+      --accent: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--hairline-mid);
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--hairline-edge);
+      font-family: monospace;
+    }
+
+    .figure-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 5 / 4;
+      background-color: var(--hairline-plate);
+      border-radius: 12px;
+      border: 1px solid var(--hairline-mid);
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5);
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Vector Hairline Styles */
+    .hl-plate { fill: var(--hairline-plate); }
+    .hl-hi-stroke { stroke: #ffffff; stroke-width: 1.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .hl-hi-accent { stroke: var(--hairline-hi); stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .hl-hi-fill { fill: var(--hairline-hi); stroke: none; }
+    .hl-edge { stroke: var(--hairline-edge); stroke-width: var(--hairline-stroke); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .hl-edge-fill { fill: var(--hairline-edge); }
+    .hl-mid { stroke: var(--hairline-mid); stroke-width: var(--hairline-stroke); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .hl-lo { stroke: var(--hairline-lo); stroke-width: var(--hairline-stroke); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .hl-shadow { fill: rgba(0,0,0,0.45); filter: blur(4px); }
+
+    .readout {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--hairline-edge);
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--hairline-mid);
+      pointer-events: none;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid var(--hairline-mid);
+      font-size: 0.85rem;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      color: var(--hairline-edge);
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    button {
+      background: transparent;
+      border: 1px solid var(--hairline-mid);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      border-color: var(--hairline-edge);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .info-footer {
+      font-size: 0.8rem;
+      color: var(--hairline-mid);
+      text-align: center;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div>
+        <h1>Hairline — Ferrari SF-24 Vector</h1>
+        <div class="subtitle">Precision Isometric Vector Engine &bull; Ferrari F1 Spec</div>
+      </div>
+      <button id="themeToggle" onclick="toggleTheme()">Theme: Auto</button>
+    </header>
+
+    <div class="figure-frame" id="figureContainer">
+      <svg id="f1Svg" viewBox="0 0 540 420"></svg>
+      <div class="readout" id="readoutText">telemetry &bull; rest</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="intensity">Intensity:</label>
+        <input type="range" id="intensity" min="0" max="1" step="0.05" value="0.5" />
+        <span id="intensityVal" style="font-family: monospace; width: 32px;">0.50</span>
+      </div>
+
+      <div class="control-group">
+        <button id="playBtn" onclick="togglePlay()">Play Auto-Tour</button>
+      </div>
+    </div>
+
+    <div class="info-footer">
+      Modeled after the Ferrari SF-24 F1 car.<br/>
+      Pointer movement flexes suspension wishbones, turns wheels, &amp; opens DRS wing flap.
+    </div>
+  </div>
+
+  <script>
+    const svg = document.getElementById("f1Svg");
+    const container = document.getElementById("figureContainer");
+    const readoutText = document.getElementById("readoutText");
+    const intensityInput = document.getElementById("intensity");
+    const intensityVal = document.getElementById("intensityVal");
+    const playBtn = document.getElementById("playBtn");
+
+    let options = { intensity: 0.5, theme: "auto", play: false };
+
+    let isHovered = false;
+    let targetX = 0, targetY = 0;
+    let currX = 0, currY = 0;
+    let autoTime = 0;
+
+    const CX = 270, CY = 200;
+    const uX = 1.3, uY = 0.65;
+    const vX = -0.9, vY = 0.45;
+    const wZ = -0.95;
+
+    function proj(x, y, z) {
+      return [CX + x * uX + y * vX, CY + x * uY + y * vY + z * wZ];
+    }
+
+    function pstr(pts) {
+      return pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    }
+
+    intensityInput.addEventListener("input", (e) => {
+      options.intensity = parseFloat(e.target.value);
+      intensityVal.textContent = options.intensity.toFixed(2);
+    });
+
+    container.addEventListener("pointermove", (e) => {
+      isHovered = true;
+      const rect = container.getBoundingClientRect();
+      targetX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+      targetY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    });
+
+    container.addEventListener("pointerleave", () => {
+      isHovered = false;
+      targetX = 0; targetY = 0;
+    });
+
+    function togglePlay() {
+      options.play = !options.play;
+      playBtn.classList.toggle("active", options.play);
+      playBtn.textContent = options.play ? "Playing Tour..." : "Play Auto-Tour";
+    }
+
+    function toggleTheme() {
+      const body = document.documentElement;
+      const current = body.getAttribute("data-theme");
+      let next = "dark";
+      if (current === "dark") next = "light";
+      else if (current === "light") next = "auto";
+      
+      if (next === "auto") body.removeAttribute("data-theme");
+      else body.setAttribute("data-theme", next);
+
+      document.getElementById("themeToggle").textContent = `Theme: ${next.charAt(0).toUpperCase() + next.slice(1)}`;
+    }
+
+    function render() {
+      requestAnimationFrame(render);
+
+      if (options.play && !isHovered) {
+        autoTime += 0.035;
+        targetX = Math.sin(autoTime) * 0.85;
+        targetY = Math.cos(autoTime * 0.6) * 0.7;
+      }
+
+      const factor = 0.08 + options.intensity * 0.06;
+      currX += (targetX - currX) * factor;
+      currY += (targetY - currY) * factor;
+
+      const steerDeg = Math.round(currX * 22 * options.intensity);
+      const drsPct = Math.max(0, Math.round(-currY * 100 * options.intensity));
+      const speed = Math.round(260 + Math.abs(currX) * 85);
+
+      if (Math.abs(currX) > 0.05 || Math.abs(currY) > 0.05) {
+        readoutText.textContent = `SF-24 • steer ${steerDeg > 0 ? '+' : ''}${steerDeg}° • DRS ${drsPct}% • ${speed} km/h`;
+      } else {
+        readoutText.textContent = `telemetry • ready`;
+      }
+
+      drawF1(currX * options.intensity, currY * options.intensity);
+    }
+
+    function drawF1(rx, ry) {
+      const pitch = ry * 10;
+      const drsLift = Math.max(0, -ry * 16);
+      let html = "";
+
+      // 1. Plinth / Track Plate Grid
+      const pG1 = proj(160, -90, 0), pG2 = proj(160, 90, 0);
+      const pG3 = proj(-160, 90, 0), pG4 = proj(-160, -90, 0);
+      html += `<polygon points="${pstr([pG1, pG2, pG3, pG4])}" class="hl-plate" />`;
+      html += `<polygon points="${pstr([pG1, pG2, pG3, pG4])}" class="hl-lo" />`;
+
+      for (let lx = -140; lx <= 140; lx += 35) {
+        const l1 = proj(lx, -90, 0), l2 = proj(lx, 90, 0);
+        html += `<line x1="${l1[0]}" y1="${l1[1]}" x2="${l2[0]}" y2="${l2[1]}" class="hl-lo" stroke-dasharray="3,5" />`;
+      }
+
+      // 2. Diffuser & Floor Ground Shadow
+      const pS1 = proj(140 + rx*6, -55, 0), pS2 = proj(140 + rx*6, 55, 0);
+      const pS3 = proj(-145 + rx*6, 50, 0), pS4 = proj(-145 + rx*6, -50, 0);
+      html += `<polygon points="${pstr([pS1, pS2, pS3, pS4])}" class="hl-shadow" />`;
+
+      // Floor Edge Wings & Venturi Undercut
+      const zFloor = 4 + pitch * 0.15;
+      const fl1 = proj(110, -42, zFloor), fl2 = proj(110, 42, zFloor);
+      const fl3 = proj(-110, 40, zFloor), fl4 = proj(-110, -40, zFloor);
+      html += `<polygon points="${pstr([fl1, fl2, fl3, fl4])}" class="hl-edge" />`;
+      html += `<polyline points="${pstr([proj(60, -45, zFloor+2), proj(10, -48, zFloor+2), proj(-40, -46, zFloor+2)])}" class="hl-hi-stroke" />`;
+      html += `<polyline points="${pstr([proj(60, 45, zFloor+2), proj(10, 48, zFloor+2), proj(-40, 46, zFloor+2)])}" class="hl-hi-stroke" />`;
+
+      // 3. Wheels
+      const wheels = [
+        { name: "RL", x: -95, y: -44, front: false, radX: 14, radY: 26 },
+        { name: "FL", x: 80, y: -40, front: true, radX: 12, radY: 22 },
+        { name: "RR", x: -95, y: 44, front: false, radX: 16, radY: 30 },
+        { name: "FR", x: 80, y: 40, front: true, radX: 14, radY: 25 }
+      ];
+
+      wheels.forEach(w => {
+        const steerOffset = w.front ? rx * 8 : 0;
+        const c = proj(w.x, w.y + steerOffset, zFloor + (w.front ? 10 : 12));
+        
+        const ch1 = proj(w.x + 12, w.y > 0 ? 18 : -18, zFloor + 12);
+        const ch2 = proj(w.x - 12, w.y > 0 ? 18 : -18, zFloor + 12);
+        html += `<line x1="${c[0]}" y1="${c[1]}" x2="${ch1[0]}" y2="${ch1[1]}" class="hl-edge" />`;
+        html += `<line x1="${c[0]}" y1="${c[1]}" x2="${ch2[0]}" y2="${ch2[1]}" class="hl-edge" />`;
+
+        html += `<ellipse cx="${c[0]}" cy="${c[1]}" rx="${w.radX}" ry="${w.radY}" class="hl-edge" />`;
+        html += `<ellipse cx="${c[0]}" cy="${c[1]}" rx="${w.radX * 0.65}" ry="${w.radY * 0.65}" class="hl-hi-stroke" />`;
+        html += `<ellipse cx="${c[0]}" cy="${c[1]}" rx="${w.radX * 0.85}" ry="${w.radY * 0.85}" class="hl-hi-accent" stroke-dasharray="6,12" />`;
+        html += `<circle cx="${c[0]}" cy="${c[1]}" r="3" class="hl-hi-fill" />`;
+      });
+
+      // 4. Ferrari Body
+      const zNoseTip = zFloor + 6 + pitch * 0.2;
+      const zCockpit = zFloor + 24;
+      const noseTip = proj(138, 0, zNoseTip);
+      const noseMid = proj(90, 0, zNoseTip + 8);
+
+      const bodyPts = [
+        noseTip,
+        proj(120, -6, zNoseTip + 3),
+        proj(80, -12, zNoseTip + 8),
+        proj(40, -14, zCockpit - 2),
+        proj(-20, -22, zCockpit + 2),
+        proj(-80, -18, zCockpit - 2),
+        proj(-110, 0, zCockpit - 4),
+        proj(-80, 18, zCockpit - 2),
+        proj(-20, 22, zCockpit + 2),
+        proj(40, 14, zCockpit - 2),
+        proj(80, 12, zNoseTip + 8),
+        proj(120, 6, zNoseTip + 3)
+      ];
+      html += `<polygon points="${pstr(bodyPts)}" class="hl-edge" />`;
+
+      html += `<path d="M ${noseTip[0]} ${noseTip[1]} Q ${noseMid[0]} ${noseMid[1]} ${proj(20, 0, zCockpit + 6)[0]} ${proj(20, 0, zCockpit + 6)[1]}" class="hl-hi-accent" />`;
+
+      const intakeL1 = proj(42, -14, zNoseTip + 8), intakeL2 = proj(42, -24, zNoseTip + 6);
+      const intakeR1 = proj(42, 14, zNoseTip + 8), intakeR2 = proj(42, 24, zNoseTip + 6);
+      html += `<polyline points="${pstr([intakeL1, intakeL2, proj(10, -24, zCockpit - 4)])}" class="hl-hi-stroke" />`;
+      html += `<polyline points="${pstr([intakeR1, intakeR2, proj(10, 24, zCockpit - 4)])}" class="hl-hi-stroke" />`;
+
+      // 5. Cockpit & Halo
+      const cFront = proj(32, 0, zCockpit + 2);
+      const cLeft = proj(-10, -11, zCockpit + 3);
+      const cRight = proj(-10, 11, zCockpit + 3);
+      html += `<polygon points="${pstr([cFront, proj(15, -10, zCockpit), cLeft, proj(-20, 0, zCockpit-2), cRight, proj(15, 10, zCockpit)])}" class="hl-lo" />`;
+
+      const helmet = proj(2, 0, zCockpit + 4);
+      html += `<circle cx="${helmet[0]}" cy="${helmet[1]}" r="6.5" class="hl-hi-stroke" />`;
+      html += `<circle cx="${helmet[0]}" cy="${helmet[1]}" r="3" class="hl-hi-fill" />`;
+
+      const haloPillar = proj(24, 0, zCockpit + 6);
+      const haloTopL = proj(-5, -13, zCockpit + 16);
+      const haloTopR = proj(-5, 13, zCockpit + 16);
+      const haloRear = proj(-18, 0, zCockpit + 15);
+      html += `<polyline points="${pstr([haloPillar, haloTopL, haloRear, haloTopR, haloPillar])}" class="hl-hi-stroke" stroke-width="2" />`;
+
+      // 6. Airbox & Fin
+      const airbox = proj(-22, 0, zCockpit + 26);
+      const sharkFinTip = proj(-98, 0, zCockpit + 16);
+      html += `<polygon points="${pstr([airbox, proj(-40, 0, zCockpit + 24), sharkFinTip, proj(-90, 0, zCockpit + 2)])}" class="hl-edge" />`;
+      html += `<line x1="${airbox[0]}" y1="${airbox[1]}" x2="${sharkFinTip[0]}" y2="${sharkFinTip[1]}" class="hl-hi-stroke" />`;
+
+      // 7. Front Wing
+      const fwZ = zNoseTip - 2;
+      const fwTipL = proj(152, -52, fwZ + 2), fwTipR = proj(152, 52, fwZ + 2);
+      const fwMidL = proj(145, -20, fwZ), fwMidR = proj(145, 20, fwZ);
+
+      html += `<path d="M ${fwTipL[0]} ${fwTipL[1]} Q ${fwMidL[0]} ${fwMidL[1]} ${noseTip[0]} ${noseTip[1]} Q ${fwMidR[0]} ${fwMidR[1]} ${fwTipR[0]} ${fwTipR[1]}" class="hl-hi-stroke" stroke-width="2.2" />`;
+      html += `<path d="M ${fwTipL[0]-3} ${fwTipL[1]-2} Q ${fwMidL[0]} ${fwMidL[1]+2} ${noseTip[0]} ${noseTip[1]+2} Q ${fwMidR[0]} ${fwMidR[1]+2} ${fwTipR[0]-3} ${fwTipR[1]-2}" class="hl-edge" />`;
+      html += `<polygon points="${pstr([fwTipL, proj(158, -53, fwZ+16), proj(140, -53, fwZ+12), proj(138, -52, fwZ)])}" class="hl-hi-stroke" />`;
+      html += `<polygon points="${pstr([fwTipR, proj(158, 53, fwZ+16), proj(140, 53, fwZ+12), proj(138, 52, fwZ)])}" class="hl-hi-stroke" />`;
+
+      // 8. Rear Wing
+      const rwZ = zCockpit + 26;
+      const rwL = proj(-125, -36, rwZ), rwR = proj(-125, 36, rwZ);
+      const rwBotL = proj(-125, -36, rwZ - 26), rwBotR = proj(-125, 36, rwZ - 26);
+
+      html += `<polygon points="${pstr([rwL, proj(-105, -36, rwZ+6), proj(-105, -36, rwZ-24), rwBotL])}" class="hl-edge" />`;
+      html += `<polygon points="${pstr([rwR, proj(-105, 36, rwZ+6), proj(-105, 36, rwZ-24), rwBotR])}" class="hl-edge" />`;
+      html += `<line x1="${rwL[0]}" y1="${rwL[1]}" x2="${rwR[0]}" y2="${rwR[1]}" class="hl-edge" stroke-width="2" />`;
+
+      const drsL = proj(-125, -34, rwZ + 8 + drsLift);
+      const drsR = proj(-125, 34, rwZ + 8 + drsLift);
+      html += `<line x1="${drsL[0]}" y1="${drsL[1]}" x2="${drsR[0]}" y2="${drsR[1]}" class="hl-hi-accent" stroke-width="3" />`;
+
+      if (drsLift > 2) {
+        const midP = proj(-125, 0, rwZ);
+        const drsP = proj(-125, 0, rwZ + 8 + drsLift);
+        html += `<line x1="${midP[0]}" y1="${midP[1]}" x2="${drsP[0]}" y2="${drsP[1]}" class="hl-hi-stroke" stroke-dasharray="2,2" />`;
+      }
+
+      svg.innerHTML = html;
+    }
+
+    render();
+  </script>
+</body>
+</html>
